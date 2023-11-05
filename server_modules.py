@@ -9,6 +9,7 @@ class Server:
     def start(self, path):
         if not self.is_online():
             go2 = path+"\\Binaries\\Win64"
+            print(path)
             command = f'{path[:2]} && cd "{go2}" && start {self.bat_name}'
             subprocess.run(command, shell=True)
 
@@ -29,6 +30,7 @@ class ServerHandler:
         self.servers = self.get_servers()
         with open('params.txt', 'r') as f:
             self.global_path, self.server_version = f.readlines()[:2]
+            self.global_path = self.global_path.split("=")[1][1:]
 
     @staticmethod
     def get_servers() -> list[Server]:
@@ -61,6 +63,11 @@ class ServerHandler:
         for server in self.servers:
             if server.name == name:
                 server.close()
+
+    def is_server_online(self, name):
+        for server in self.servers:
+            if server.name == name:
+                return server.is_online()
 
 
 if __name__ == "__main__":

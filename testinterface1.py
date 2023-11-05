@@ -89,7 +89,7 @@ class App(customtkinter.CTk):
             self.buttons_images.append(TkImage(self.current_path+"\\images", "plus.png", size=(500, 280)))
 
         # create main frame
-        self.main_frame = self.main_frame_constructor()
+        self.main_frame, self.buttons = self.main_frame_constructor()
 
         self.login_frame.grid_forget()  # remove login frame
         self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)  # show main frame
@@ -123,7 +123,7 @@ class App(customtkinter.CTk):
 
             scrollable_frame.grid(row=0, column=0, sticky="nsew")
 
-            return main_frame
+            return main_frame, scrollable_frame.button_list
         else:
             main_frame = customtkinter.CTkFrame(self, corner_radius=0)
             for i in range(2):
@@ -143,34 +143,39 @@ class App(customtkinter.CTk):
             for i, button in enumerate(buttons):
                 button.grid(row=i//2, column=i % 2, pady=10, padx=10, sticky="nsew")
 
-            return main_frame
+            return main_frame, buttons
 
     def button_event(self, item):
         item = item.split('.')[0]
-        print(item)
-        match item:
-            case 'plus':
-                self.add_server_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
-                self.add_server_frame.grid(row=0, column=0)
+        if item == 'plus':
+            self.add_server_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
+            self.add_server_frame.grid(row=0, column=0)
+            add_server_label = customtkinter.CTkLabel(self.add_server_frame, text="Add server",
+                                                      font=customtkinter.CTkFont(size=25, weight="bold"))
+            server_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Version name")
+            bat_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Bat name")
+            add_image_button = customtkinter.CTkButton(self.add_server_frame, text="Add an image",
+                                                       command=lambda: self.select_image(server_name.get()),
+                                                       width=200)
+            add_server_button = customtkinter.CTkButton(self.add_server_frame, text="Add a server",
+                                                        command=lambda: self.add_server(server_name.get(),
+                                                                                        bat_name.get()), width=200)
+            add_server_label.grid(row=0, column=0, padx=30, pady=15)
+            server_name.grid(row=1, column=0, padx=30, pady=(15, 15))
+            bat_name.grid(row=2, column=0, padx=30, pady=(0, 15))
+            add_image_button.grid(row=3, column=0, padx=30, pady=(15, 15))
+            add_server_button.grid(row=4, column=0, padx=30, pady=(0, 15))
+            self.add_server_frame.lift()
 
-                add_server_label = customtkinter.CTkLabel(self.add_server_frame, text="Add server",
-                                                          font=customtkinter.CTkFont(size=25, weight="bold"))
-                server_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Version name")
-                bat_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Bat name")
-                add_image_button = customtkinter.CTkButton(self.add_server_frame, text="Add an image",
-                                                           command=lambda: self.select_image(server_name.get()),
-                                                           width=200)
-                add_server_button = customtkinter.CTkButton(self.add_server_frame, text="Add a server",
-                                                            command=lambda: self.add_server(server_name.get(),
-                                                                                            bat_name.get()), width=200)
-
-                add_server_label.grid(row=0, column=0, padx=30, pady=15)
-                server_name.grid(row=1, column=0, padx=30, pady=(15, 15))
-                bat_name.grid(row=2, column=0, padx=30, pady=(0, 15))
-                add_image_button.grid(row=3, column=0, padx=30, pady=(15, 15))
-                add_server_button.grid(row=4, column=0, padx=30, pady=(0, 15))
-
-                self.add_server_frame.lift()
+        else:
+            for button in self.buttons:
+                if button.name == item:
+                    if self.server_handler.is_server_online(item):
+                        button.configure(fg_color="firebrick4")
+                        self.server_handler.close_server(item)
+                    else:
+                        button.configure(fg_color="green4")
+                        self.server_handler.start_server(item)
 
     def add_server(self, name, bat_name):
         print(name, bat_name, self.server_image)
