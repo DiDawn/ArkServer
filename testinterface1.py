@@ -59,6 +59,62 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
         self.grid_rowconfigure(i, weight=1)
 
 
+class AddServerFrame(customtkinter.CTkFrame):
+    def __init__(self, master, current_path, add_server_func, **kwargs):
+        super().__init__(master, **kwargs)
+        self.master = master
+        self.current_path = current_path
+        self.add_server_func = add_server_func
+
+        self.error_label = customtkinter.CTkLabel(self, text="", fg_color="tomato", text_color="red4", width=200)
+
+        self.frame_constructor()
+
+    def frame_constructor(self):
+        top_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
+        add_server_label = customtkinter.CTkLabel(top_frame, text="Add a server",
+                                                  font=customtkinter.CTkFont(size=25, weight="bold"))
+        close_button = customtkinter.CTkButton(top_frame, text="",
+                                               command=lambda: self.grid_forget(),
+                                               width=20, fg_color="gray24", hover_color="gray12",
+                                               image=TkImage(self.current_path + "\\images", "close.png",
+                                                             size=(15, 15)))
+        add_server_label.grid(row=0, column=0, padx=45)
+        close_button.grid(row=0, column=0, sticky="ne")
+
+        dlcs = ["The Island", "The Center", "Scorched Earth", "Ragnarok", "Aberration", "Extinction", "Valguero",
+                "Genesis: Part 1", "Crystal Isles", "Genesis: Part 2", "Lost Island", "Fjordur"]
+        server_version = customtkinter.CTkOptionMenu(self, values=dlcs,
+                                                     width=200,
+                                                     fg_color="gray24", button_color="gray18",
+                                                     button_hover_color="gray12")
+        server_name = customtkinter.CTkEntry(self, width=200, placeholder_text="Server name")
+        save_name = customtkinter.CTkEntry(self, width=200, placeholder_text="Save folder name")
+        bat_name = customtkinter.CTkEntry(self, width=200, placeholder_text="Bat name")
+
+        add_server_button = customtkinter.CTkButton(self, text="Add a server",
+                                                    command=lambda: self.add_server_func(server_version.get(),
+                                                                                         server_name.get(),
+                                                                                         save_name.get(),
+                                                                                         bat_name.get()),
+                                                    width=200, fg_color="gray24", hover_color="gray12")
+
+        top_frame.grid(row=0, column=0, padx=30, pady=15)
+        server_version.grid(row=1, column=0, padx=30, pady=(15, 15))
+        server_name.grid(row=2, column=0, padx=30, pady=(0, 15))
+        save_name.grid(row=3, column=0, padx=30, pady=(0, 15))
+        bat_name.grid(row=4, column=0, padx=30, pady=(0, 15))
+        add_server_button.grid(row=6, column=0, padx=30, pady=(15, 15))
+
+    def show_error_label(self, error):
+        self.error_label.configure(text=error)
+        self.error_label.grid(row=5, column=0, padx=30)
+
+    def hide_error_label(self):
+        self.error_label.configure(text="")
+        self.error_label.grid_forget()
+
+
 class App(customtkinter.CTk):
     width = 1280
     height = 720
@@ -83,7 +139,7 @@ class App(customtkinter.CTk):
         self.buttons = []
         names = os.listdir("images\\thumbnails")
         for name in names:
-            self.buttons_images.append(TkImage(self.current_path+"\\images\\thumbnails", name, size=(500, 280)))
+            self.buttons_images.append(TkImage(self.current_path + "\\images\\thumbnails", name, size=(500, 280)))
         self.image_version = {"The Island": "the island.jpg", "The Center": "the center.jpg",
                               "Scorched Earth": "scorched earth.jpg", "Ragnarok": "ragnarok.jpg",
                               "Aberration": "aberration.jpg", "Extinction": "extinction.jpg",
@@ -96,7 +152,8 @@ class App(customtkinter.CTk):
         self.admin = False
 
         self.main_frame = None
-        self.add_server_frame = None
+        self.add_server_frame = AddServerFrame(self, self.current_path, self.add_server, fg_color="transparent",
+                                               bg_color="transparent")
 
         self.side_bar = self.side_bar_constructor()
 
@@ -110,7 +167,7 @@ class App(customtkinter.CTk):
         print(f"{self.admin:}")
         self.admin = True
         if self.admin:
-            self.buttons_images.append(TkImage(self.current_path+"\\images", "plus.png", size=(500, 280)))
+            self.buttons_images.append(TkImage(self.current_path + "\\images", "plus.png", size=(500, 280)))
 
         # create main frame
         self.main_frame, self.buttons = self.main_frame_constructor()
@@ -122,13 +179,13 @@ class App(customtkinter.CTk):
 
     def side_bar_constructor(self):
         side_bar = customtkinter.CTkFrame(self)
-        image = TkImage(self.current_path+"\\images", "gear.png", size=(30, 30))
+        image = TkImage(self.current_path + "\\images", "gear.png", size=(30, 30))
         gear_button = Button(side_bar, "gear", image=image, text="", command=lambda: print("click!"), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
-        image = TkImage(self.current_path+"\\images", "start.png", size=(30, 30))
+        image = TkImage(self.current_path + "\\images", "start.png", size=(30, 30))
         start_button = Button(side_bar, "start", image=image, text="", command=lambda: print("click!"), width=40,
                               fg_color="transparent", bg_color="transparent", hover_color="gray12")
-        image = TkImage(self.current_path+"\\images", "stop.png", size=(30, 30))
+        image = TkImage(self.current_path + "\\images", "stop.png", size=(30, 30))
         stop_button = Button(side_bar, "stop", image=image, text="", command=lambda: print("click!"), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
         image = TkImage(self.current_path + "\\images", "grid.png", size=(30, 30))
@@ -138,6 +195,7 @@ class App(customtkinter.CTk):
         admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
                                     command=lambda: print("click!"), width=40,
                                     fg_color="transparent", bg_color="transparent", hover_color="gray12")
+
         gear_button.grid(row=0, column=0, padx=10, pady=10)
         start_button.grid(row=1, column=0, padx=10, pady=(0, 10))
         stop_button.grid(row=2, column=0, padx=10, pady=(0, 10))
@@ -202,45 +260,12 @@ class App(customtkinter.CTk):
                 buttons.append(button)
 
             for i, button in enumerate(buttons):
-                button.grid(row=i//2, column=i % 2, pady=10, padx=10, sticky="nsew")
+                button.grid(row=i // 2, column=i % 2, pady=10, padx=10, sticky="nsew")
 
             return main_frame, buttons
 
     def plus_button_callback(self):
-        self.add_server_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
         self.add_server_frame.grid(row=0, column=0)
-        top_frame = customtkinter.CTkFrame(self.add_server_frame, fg_color="transparent", bg_color="transparent")
-        add_server_label = customtkinter.CTkLabel(top_frame, text="Add a server",
-                                                  font=customtkinter.CTkFont(size=25, weight="bold"))
-        close_button = customtkinter.CTkButton(top_frame, text="",
-                                               command=lambda: self.close_add_server(),
-                                               width=20, fg_color="gray24", hover_color="gray12",
-                                               image=TkImage(self.current_path+"\\images", "close.png", size=(15, 15)))
-        add_server_label.grid(row=0, column=0, padx=45)
-        close_button.grid(row=0, column=0, sticky="ne")
-
-        dlcs = ["The Island", "The Center", "Scorched Earth", "Ragnarok", "Aberration", "Extinction", "Valguero",
-                "Genesis: Part 1", "Crystal Isles", "Genesis: Part 2", "Lost Island", "Fjordur"]
-        server_version = customtkinter.CTkOptionMenu(self.add_server_frame, values=dlcs,
-                                                     width=200,
-                                                     fg_color="gray24", button_color="gray18",
-                                                     button_hover_color="gray12")
-        server_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Server name")
-        save_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Save folder name")
-        bat_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Bat name")
-
-        add_server_button = customtkinter.CTkButton(self.add_server_frame, text="Add a server",
-                                                    command=lambda: self.add_server(server_version.get(),
-                                                                                    server_name.get(),
-                                                                                    save_name.get(),
-                                                                                    bat_name.get()),
-                                                    width=200, fg_color="gray24", hover_color="gray12")
-        top_frame.grid(row=0, column=0, padx=30, pady=15)
-        server_version.grid(row=1, column=0, padx=30, pady=(15, 15))
-        server_name.grid(row=2, column=0, padx=30, pady=(0, 15))
-        save_name.grid(row=3, column=0, padx=30, pady=(0, 15))
-        bat_name.grid(row=4, column=0, padx=30, pady=(0, 15))
-        add_server_button.grid(row=5, column=0, padx=30, pady=(15, 15))
         self.add_server_frame.lift()
 
     def close_add_server(self):
@@ -260,18 +285,28 @@ class App(customtkinter.CTk):
 
     def add_server(self, version, name, save_name, bat_name):
         print(version, name, save_name, bat_name)
-        # ##############################################################################################################
-        # ##### ATTENTION MODIFIER POUR REMETTRE LA VERIFCATION DE LA PRESENCE DES FICHIERS DANS LE CHEMIN D ACCES #####
-        # ##############################################################################################################
-        if not bat_name.endswith(".bat"):
-            bat_name += ".bat"
-        # files_saved = os.listdir(self.server_handler.global_path + "\\Saved")
-        # files = os.listdir(self.server_handler.global_path+"\\Binaries\\Win64")
-        if version and name and save_name and bat_name:
 
+        if not bat_name.endswith(".bat") and bat_name:
+            bat_name += ".bat"
+
+        error, saves_files, bat_files = [], [], []
+        saves_files_path = self.server_handler.global_path + "\\Saved"
+        bat_files_path = self.server_handler.global_path+"\\Binaries\\Win64"
+        try:
+            saves_files = os.listdir(saves_files_path)
+        except FileNotFoundError:
+            error.append(f"Invalid path for saves files: {saves_files_path}")
+        try:
+            bat_files = os.listdir(bat_files_path)
+        except FileNotFoundError:
+            error.append(f"Invalid path for bat files: {bat_files_path}")
+
+        if name and save_name in saves_files and bat_name in bat_files:
+
+            self.add_server_frame.hide_error_label()
             self.add_server_frame.grid_forget()
 
-            tk_image = TkImage(self.current_path+"\\images\\versions", self.image_version[version], size=(500, 280))
+            tk_image = TkImage(self.current_path + "\\images\\versions", self.image_version[version], size=(500, 280))
             self.buttons_images.append(tk_image)
             image_ext = self.image_version[version].split(".")[-1]
             tk_image.image.save(f".\\images\\thumbnails\\{name}.{image_ext}")
@@ -285,7 +320,25 @@ class App(customtkinter.CTk):
             self.main_frame, self.buttons = self.main_frame_constructor()
             self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)  # show main frame
         else:
-            print("missing an argument")
+            if not save_name:
+                error.append("No save name")
+            if save_name and not (save_name in saves_files):
+                error.append(f"Invalid save name: {save_name}")
+            if not bat_name:
+                error.append("No bat name")
+            if bat_name and not (bat_name in bat_files):
+                error.append(f"Invalid bat name: {bat_name}")
+
+            if not version:
+                error.append("No version selected")
+            if not name:
+                error.append("Need a name to create a server")
+
+            prompt_error = ""
+            for element in error:
+                prompt_error += element+"\n"
+
+            self.add_server_frame.show_error_label(prompt_error)
 
     def select_image(self, name):
         if name:
@@ -295,6 +348,9 @@ class App(customtkinter.CTk):
             if result:
                 image = Image.open(result)
                 image.save(f".\\images\\thumbnails\\{name}.{image_ext}")
+
+    def show_error_label(self, error):
+        pass
 
     @staticmethod
     def get_download_path():
