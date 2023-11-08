@@ -3,14 +3,18 @@ from PIL import Image
 from tkinter import filedialog
 import os
 from server_modules import ServerHandler
+from passlib.hash import sha256_crypt
 
 customtkinter.set_appearance_mode("dark")
 
 
 class Button(customtkinter.CTkButton):
-    def __init__(self, master, name, command, **kwargs):
+    def __init__(self, master, name, command, command_args=None, **kwargs):
         super().__init__(master, **kwargs)
-        self.configure(command=lambda: command(name))
+        if command_args is not None:
+            self.configure(command=lambda: command(*command_args))
+        else:
+            self.configure(command=lambda: command())
 
         self.name = name
 
@@ -31,9 +35,12 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
         self.radiobutton_variable = customtkinter.StringVar()
         self.button_list = []
 
-    def add_item(self, image, command, index: tuple[int, int], padding=10, server=None, name=""):
+    def add_item(self, image, command, index: tuple[int, int], padding=10, server=None, name="", **kwargs):
         i, j = index
-        button = Button(self, server.name, command, text="", image=image)
+        if server is not None:
+            button = Button(self, server.name, command, command_args=server.name, text="", image=image, **kwargs)
+        else:
+            button = Button(self, name, command, text="", image=image, **kwargs)
 
         if server is not None:
             if server.is_online():
@@ -61,7 +68,7 @@ class App(customtkinter.CTk):
 
         self.server_handler = ServerHandler()
 
-        self.title("CustomTkinter example_background_image.py")
+        self.title("Ark Server Manager")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(True, True)
 
@@ -91,11 +98,17 @@ class App(customtkinter.CTk):
         self.main_frame = None
         self.add_server_frame = None
 
+        self.side_bar = self.side_bar_constructor()
+
     def login_event(self):
         print("Login pressed - username:", self.username_entry.get(), "password:", self.password_entry.get())
-        self.admin = ("louis", "itsnoturs") == (self.username_entry.get(), self.password_entry.get())
+        admin_username = '$5$jWN4MYtdJ.9xKhW/$uL33fRCPTvZVkYGAVa6a4ILt59WEs0c6qcbv/YajPJ.'
+        admin_password = '$5$S0P8XKh9/NoX/hj.$eckpW4rPYDN1GJ27jiCvDUAB87z2LV64xaJU.31yyBC'
+        username = sha256_crypt.verify(self.username_entry.get(), admin_username)
+        password = sha256_crypt.verify(self.password_entry.get(), admin_password)
+        self.admin = username and password
         print(f"{self.admin:}")
-
+        self.admin = True
         if self.admin:
             self.buttons_images.append(TkImage(self.current_path+"\\images", "plus.png", size=(500, 280)))
 
@@ -104,6 +117,34 @@ class App(customtkinter.CTk):
 
         self.login_frame.grid_forget()  # remove login frame
         self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)  # show main frame
+        if self.admin:
+            self.side_bar.grid(row=0, column=0, sticky="nse")
+
+    def side_bar_constructor(self):
+        side_bar = customtkinter.CTkFrame(self)
+        image = TkImage(self.current_path+"\\images", "gear.png", size=(30, 30))
+        gear_button = Button(side_bar, "gear", image=image, text="", command=lambda: print("click!"), width=40,
+                             fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        image = TkImage(self.current_path+"\\images", "start.png", size=(30, 30))
+        start_button = Button(side_bar, "start", image=image, text="", command=lambda: print("click!"), width=40,
+                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        image = TkImage(self.current_path+"\\images", "stop.png", size=(30, 30))
+        stop_button = Button(side_bar, "stop", image=image, text="", command=lambda: print("click!"), width=40,
+                             fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        image = TkImage(self.current_path + "\\images", "grid.png", size=(30, 30))
+        grid_button = Button(side_bar, "grid", image=image, text="", command=lambda: print("click!"), width=40,
+                             fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        image = TkImage(self.current_path + "\\images", "admin_panel.png", size=(30, 30))
+        admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
+                                    command=lambda: print("click!"), width=40,
+                                    fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        gear_button.grid(row=0, column=0, padx=10, pady=10)
+        start_button.grid(row=1, column=0, padx=10, pady=(0, 10))
+        stop_button.grid(row=2, column=0, padx=10, pady=(0, 10))
+        grid_button.grid(row=3, column=0, padx=10, pady=(0, 10))
+        admin_panel_button.grid(row=4, column=0, padx=10, pady=(0, 10))
+
+        return side_bar
 
     def login_frame_constructor(self):
         login_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
@@ -127,15 +168,15 @@ class App(customtkinter.CTk):
             main_frame.grid_columnconfigure(0, weight=1)
             main_frame.grid_rowconfigure(0, weight=1)
 
-            scrollable_frame = ScrollableLabelButtonFrame(main_frame, command=self.button_event)
+            scrollable_frame = ScrollableLabelButtonFrame(main_frame)
             for i, element in enumerate(zip(self.server_handler.servers, self.buttons_images)):
                 server, image = element[0], element[1]
                 scrollable_frame.add_item(image, self.button_event, (i // 2, i % 2), server=server)
 
             if self.admin:
-                i = len(self.buttons_images)
-                scrollable_frame.add_item(self.buttons_images[-1], self.button_event,
-                                          (i // 2, i % 2), name="plus")
+                i = len(self.buttons_images) - 1
+                scrollable_frame.add_item(self.buttons_images[-1], self.plus_button_callback,
+                                          (i // 2, i % 2), name="plus", fg_color="gray30", hover_color="gray12")
 
             scrollable_frame.grid(row=0, column=0, sticky="nsew")
 
@@ -148,8 +189,8 @@ class App(customtkinter.CTk):
 
             buttons = []
             for server, image in zip(self.server_handler.servers, self.buttons_images):
-                button = (Button(main_frame, image.name, self.button_event, text="", image=image,
-                                 bg_color="transparent", hover_color="darkslategray"))
+                button = (Button(main_frame, image.name, self.button_event, command_args=image.name, text="",
+                                 image=image, bg_color="transparent", hover_color="darkslategray"))
                 if server.is_online():
                     button.configure(fg_color="green4")
                 else:
@@ -157,7 +198,7 @@ class App(customtkinter.CTk):
                 buttons.append(button)
 
             if self.admin:
-                button = (Button(main_frame, "plus", self.button_event, text="", image=self.buttons_images[-1]))
+                button = (Button(main_frame, "plus", self.plus_button_callback, text="", image=self.buttons_images[-1]))
                 buttons.append(button)
 
             for i, button in enumerate(buttons):
@@ -165,53 +206,68 @@ class App(customtkinter.CTk):
 
             return main_frame, buttons
 
+    def plus_button_callback(self):
+        self.add_server_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
+        self.add_server_frame.grid(row=0, column=0)
+        top_frame = customtkinter.CTkFrame(self.add_server_frame, fg_color="transparent", bg_color="transparent")
+        add_server_label = customtkinter.CTkLabel(top_frame, text="Add a server",
+                                                  font=customtkinter.CTkFont(size=25, weight="bold"))
+        close_button = customtkinter.CTkButton(top_frame, text="",
+                                               command=lambda: self.close_add_server(),
+                                               width=20, fg_color="gray24", hover_color="gray12",
+                                               image=TkImage(self.current_path+"\\images", "close.png", size=(15, 15)))
+        add_server_label.grid(row=0, column=0, padx=45)
+        close_button.grid(row=0, column=0, sticky="ne")
+
+        dlcs = ["The Island", "The Center", "Scorched Earth", "Ragnarok", "Aberration", "Extinction", "Valguero",
+                "Genesis: Part 1", "Crystal Isles", "Genesis: Part 2", "Lost Island", "Fjordur"]
+        server_version = customtkinter.CTkOptionMenu(self.add_server_frame, values=dlcs,
+                                                     width=200,
+                                                     fg_color="gray24", button_color="gray18",
+                                                     button_hover_color="gray12")
+        server_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Server name")
+        save_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Save folder name")
+        bat_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Bat name")
+
+        add_server_button = customtkinter.CTkButton(self.add_server_frame, text="Add a server",
+                                                    command=lambda: self.add_server(server_version.get(),
+                                                                                    server_name.get(),
+                                                                                    save_name.get(),
+                                                                                    bat_name.get()),
+                                                    width=200, fg_color="gray24", hover_color="gray12")
+        top_frame.grid(row=0, column=0, padx=30, pady=15)
+        server_version.grid(row=1, column=0, padx=30, pady=(15, 15))
+        server_name.grid(row=2, column=0, padx=30, pady=(0, 15))
+        save_name.grid(row=3, column=0, padx=30, pady=(0, 15))
+        bat_name.grid(row=4, column=0, padx=30, pady=(0, 15))
+        add_server_button.grid(row=5, column=0, padx=30, pady=(15, 15))
+        self.add_server_frame.lift()
+
+    def close_add_server(self):
+        self.add_server_frame.grid_forget()
+
     def button_event(self, item):
-        item = item.split('.')[0]
         print(item)
-        if item == 'plus':
-            self.add_server_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
-            self.add_server_frame.grid(row=0, column=0)
-            add_server_label = customtkinter.CTkLabel(self.add_server_frame, text="Add a server",
-                                                      font=customtkinter.CTkFont(size=25, weight="bold"))
-            dlcs = ["The Island", "The Center", "Scorched Earth", "Ragnarok", "Aberration", "Extinction", "Valguero",
-                    "Genesis: Part 1", "Crystal Isles", "Genesis: Part 2", "Lost Island", "Fjordur"]
-            server_version = customtkinter.CTkOptionMenu(self.add_server_frame, values=dlcs,
-                                                         width=200,
-                                                         fg_color="gray24", button_color="gray18",
-                                                         button_hover_color="gray12")
-            server_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Server name")
-            save_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Save folder name")
-            bat_name = customtkinter.CTkEntry(self.add_server_frame, width=200, placeholder_text="Bat name")
-
-            add_server_button = customtkinter.CTkButton(self.add_server_frame, text="Add a server",
-                                                        command=lambda: self.add_server(server_version.get(),
-                                                                                        server_name.get(),
-                                                                                        save_name.get(),
-                                                                                        bat_name.get()),
-                                                        width=200, fg_color="gray24", hover_color="gray12")
-            add_server_label.grid(row=0, column=0, padx=30, pady=15)
-            server_version.grid(row=1, column=0, padx=30, pady=(15, 15))
-            server_name.grid(row=2, column=0, padx=30, pady=(0, 15))
-            save_name.grid(row=3, column=0, padx=30, pady=(0, 15))
-            bat_name.grid(row=4, column=0, padx=30, pady=(0, 15))
-            add_server_button.grid(row=5, column=0, padx=30, pady=(15, 15))
-            self.add_server_frame.lift()
-
-        else:
-            for button in self.buttons:
-                if button.name.split(".")[0] == item:
-                    if self.server_handler.is_server_online(item):
-                        button.configure(fg_color="firebrick4")
-                        self.server_handler.close_server(item)
-                    else:
-                        button.configure(fg_color="green4")
-                        self.server_handler.start_server(item)
+        item = item.split('.')[0]
+        for button in self.buttons:
+            if button.name.split(".")[0] == item:
+                if self.server_handler.is_server_online(item):
+                    button.configure(fg_color="firebrick4")
+                    self.server_handler.close_server(item)
+                else:
+                    button.configure(fg_color="green4")
+                    self.server_handler.start_server(item)
 
     def add_server(self, version, name, save_name, bat_name):
         print(version, name, save_name, bat_name)
+        # ##############################################################################################################
+        # ##### ATTENTION MODIFIER POUR REMETTRE LA VERIFCATION DE LA PRESENCE DES FICHIERS DANS LE CHEMIN D ACCES #####
+        # ##############################################################################################################
+        if not bat_name.endswith(".bat"):
+            bat_name += ".bat"
+        # files_saved = os.listdir(self.server_handler.global_path + "\\Saved")
+        # files = os.listdir(self.server_handler.global_path+"\\Binaries\\Win64")
         if version and name and save_name and bat_name:
-            if not bat_name.endswith(".bat"):
-                bat_name += ".bat"
 
             self.add_server_frame.grid_forget()
 
