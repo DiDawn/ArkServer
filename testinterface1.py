@@ -66,7 +66,7 @@ class AddServerFrame(customtkinter.CTkFrame):
         self.current_path = current_path
         self.add_server_func = add_server_func
 
-        self.error_label = customtkinter.CTkLabel(self, text="", fg_color="tomato", text_color="red4", width=200)
+        self.error_label = customtkinter.CTkLabel(self, text="", fg_color="transparent", text_color="red4", width=200)
 
         self.frame_constructor()
 
@@ -75,7 +75,7 @@ class AddServerFrame(customtkinter.CTkFrame):
         add_server_label = customtkinter.CTkLabel(top_frame, text="Add a server",
                                                   font=customtkinter.CTkFont(size=25, weight="bold"))
         close_button = customtkinter.CTkButton(top_frame, text="",
-                                               command=lambda: self.grid_forget(),
+                                               command=lambda: self.close_self(),
                                                width=20, fg_color="gray24", hover_color="gray12",
                                                image=TkImage(self.current_path + "\\images", "close.png",
                                                              size=(15, 15)))
@@ -114,6 +114,11 @@ class AddServerFrame(customtkinter.CTkFrame):
         self.error_label.configure(text="")
         self.error_label.grid_forget()
 
+    def close_self(self):
+        self.hide_error_label()
+        self.grid_forget()
+
+
 
 class App(customtkinter.CTk):
     width = 1280
@@ -126,7 +131,7 @@ class App(customtkinter.CTk):
 
         self.title("Ark Server Manager")
         self.geometry(f"{self.width}x{self.height}")
-        self.resizable(True, True)
+        self.resizable(False, False)
 
         # load and create background image
         self.current_path = os.path.dirname(os.path.realpath(__file__))
@@ -268,9 +273,6 @@ class App(customtkinter.CTk):
         self.add_server_frame.grid(row=0, column=0)
         self.add_server_frame.lift()
 
-    def close_add_server(self):
-        self.add_server_frame.grid_forget()
-
     def button_event(self, item):
         print(item)
         item = item.split('.')[0]
@@ -348,9 +350,6 @@ class App(customtkinter.CTk):
             if result:
                 image = Image.open(result)
                 image.save(f".\\images\\thumbnails\\{name}.{image_ext}")
-
-    def show_error_label(self, error):
-        pass
 
     @staticmethod
     def get_download_path():
