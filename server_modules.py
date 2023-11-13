@@ -67,6 +67,16 @@ class ServerHandler:
             if name.lower() in server.name.lower():
                 server.start(self.global_path)
 
+    def start_all_servers(self):
+        for server in self.servers:
+            if not server.is_online():
+                server.start(self.global_path)
+
+    def stop_all_servers(self):
+        for server in self.servers:
+            if server.is_online():
+                server.close()
+
     def close_server(self, name):
         for server in self.servers:
             if server.name == name:
