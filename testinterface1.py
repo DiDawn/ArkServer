@@ -26,6 +26,65 @@ class TkImage(customtkinter.CTkImage):
         super().__init__(self.image, **kwargs)
 
 
+class ParamsFrame(customtkinter.CTkFrame):
+    def __init__(self, master, admin: bool, shooter_game_path: str, server_handler, **kwargs):
+        super().__init__(master, **kwargs)
+        self.master = master
+        self.admin = admin
+        self.server_handler = server_handler
+        self.shooter_game_path = shooter_game_path
+        self.visible = False
+
+        self.admin_frame, self.user_frame, self.server_port_entry, self.target_ip_entry, self.target_port_entry = self.frame_constructor()
+
+    def frame_constructor(self):
+        admin_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
+        path_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Path to ShooterGame.exe")
+        if self.shooter_game_path:
+            path_entry.insert(0, self.shooter_game_path)
+
+        folder_button = customtkinter.CTkButton(admin_entry_frame, text="", command=lambda: self.select_folder(path_entry),
+                                                width=20, fg_color="gray24", hover_color="gray12",
+                                                image=TkImage(".\\images", "folder.png",
+                                                              size=(15, 15)))
+
+        server_port_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Server port")
+
+        path_entry.grid(row=0, column=0, padx=(30, 0), pady=(15, 15), sticky="w")
+        folder_button.grid(row=0, column=1)
+        server_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
+
+        user_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
+        target_ip_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target ip")
+        target_port_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target port")
+
+        target_ip_entry.grid(row=0, column=0, padx=30, pady=(15, 15))
+        target_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
+
+        user_entry_frame.grid(row=1, column=0, padx=30, pady=15)
+
+        return admin_entry_frame, user_entry_frame, server_port_entry, target_ip_entry, target_port_entry
+
+    def select_folder(self, entry: customtkinter.CTkEntry):
+        result = filedialog.askdirectory(title="select a folder")
+        if result and result.endswith("ShooterGame"):
+            result = result.replace("/", "\\")
+            entry.insert(0, result)
+            self.server_handler.update_shooter_game_path(result)
+
+    def hide_show(self):
+        if self.visible:
+            self.grid_forget()
+            self.visible = False
+        else:
+            if self.admin:
+                self.admin_frame.grid(row=0, column=0, padx=30, pady=15)
+                self.user_frame.grid_forget()
+            self.grid(row=0, column=0)
+            self.lift()
+            self.visible = True
+
+
 class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
     def __init__(self, master, command=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -60,10 +119,9 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
 
 
 class AddServerFrame(customtkinter.CTkFrame):
-    def __init__(self, master, current_path, add_server_func, **kwargs):
+    def __init__(self, master, add_server_func, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
-        self.current_path = current_path
         self.add_server_func = add_server_func
 
         self.error_label = customtkinter.CTkLabel(self, text="", fg_color="transparent", text_color="red4", width=200)
@@ -77,7 +135,7 @@ class AddServerFrame(customtkinter.CTkFrame):
         close_button = customtkinter.CTkButton(top_frame, text="",
                                                command=lambda: self.close_self(),
                                                width=20, fg_color="gray24", hover_color="gray12",
-                                               image=TkImage(self.current_path + "\\images", "close.png",
+                                               image=TkImage(".\\images", "close.png",
                                                              size=(15, 15)))
         add_server_label.grid(row=0, column=0, padx=45)
         close_button.grid(row=0, column=0, sticky="ne")
@@ -119,7 +177,6 @@ class AddServerFrame(customtkinter.CTkFrame):
         self.grid_forget()
 
 
-
 class App(customtkinter.CTk):
     width = 1280
     height = 720
@@ -135,7 +192,7 @@ class App(customtkinter.CTk):
 
         # load and create background image
         self.current_path = os.path.dirname(os.path.realpath(__file__))
-        self.bg_image = customtkinter.CTkImage(Image.open(self.current_path + "\\images\\wallpaper.png"),
+        self.bg_image = customtkinter.CTkImage(Image.open(".\\images\\wallpaper.png"),
                                                size=(self.width, self.height))
         self.bg_image_label = customtkinter.CTkLabel(self, image=self.bg_image)
         self.bg_image_label.grid(row=0, column=0)
@@ -144,7 +201,7 @@ class App(customtkinter.CTk):
         self.buttons = []
         names = os.listdir("images\\thumbnails")
         for name in names:
-            self.buttons_images.append(TkImage(self.current_path + "\\images\\thumbnails", name, size=(500, 280)))
+            self.buttons_images.append(TkImage(".\\images\\thumbnails", name, size=(500, 280)))
         self.image_version = {"The Island": "the island.jpg", "The Center": "the center.jpg",
                               "Scorched Earth": "scorched earth.jpg", "Ragnarok": "ragnarok.jpg",
                               "Aberration": "aberration.jpg", "Extinction": "extinction.jpg",
@@ -157,10 +214,13 @@ class App(customtkinter.CTk):
         self.admin = False
 
         self.main_frame = None
-        self.add_server_frame = AddServerFrame(self, self.current_path, self.add_server, fg_color="transparent",
+        self.side_bar = None
+
+        self.add_server_frame = AddServerFrame(self, self.add_server, fg_color="transparent",
                                                bg_color="transparent")
 
-        self.side_bar = self.side_bar_constructor()
+        self.params_frame = ParamsFrame(self, self.admin, self.server_handler.shooter_game_path, self.server_handler,
+                                        fg_color="transparent")
 
     def login_event(self):
         print("Login pressed - username:", self.username_entry.get(), "password:", self.password_entry.get())
@@ -169,50 +229,53 @@ class App(customtkinter.CTk):
         username = sha256_crypt.verify(self.username_entry.get(), admin_username)
         password = sha256_crypt.verify(self.password_entry.get(), admin_password)
         self.admin = username and password
-        print(f"{self.admin:}")
+        print(f"{self.admin=}")
         self.admin = True
         if self.admin:
-            self.buttons_images.append(TkImage(self.current_path + "\\images", "plus.png", size=(500, 280)))
-
-        # create main frame
-        self.main_frame, self.buttons = self.main_frame_constructor()
+            self.buttons_images.append(TkImage(".\\images", "plus.png", size=(500, 280)))
+            self.params_frame.admin = True
 
         self.login_frame.grid_forget()  # remove login frame
+
+        self.main_frame, self.buttons = self.main_frame_constructor()
         self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)  # show main frame
-        if self.admin:
-            self.side_bar.grid(row=0, column=0, sticky="nse")
+        self.side_bar = self.side_bar_constructor()
+        self.side_bar.grid(row=0, column=0, sticky="nse")
 
     def side_bar_constructor(self):
         side_bar = customtkinter.CTkFrame(self)
 
-        image = TkImage(self.current_path + "\\images", "gear.png", size=(30, 30))
-        gear_button = Button(side_bar, "gear", image=image, text="", command=lambda: print("click!"), width=40,
-                             fg_color="transparent", bg_color="transparent", hover_color="gray12")
+        image = TkImage(".\\images", "gear.png", size=(30, 30))
+        gear_button = Button(side_bar, "gear", image=image, text="",
+                             command=lambda: self.params_frame.hide_show(),
+                             width=40, fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-        image = TkImage(self.current_path + "\\images", "start.png", size=(30, 30))
+        image = TkImage(".\\images", "start.png", size=(30, 30))
         start_button = Button(side_bar, "start", image=image, text="",
                               command=lambda: self.server_handler.start_all_servers(), width=40,
                               fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-        image = TkImage(self.current_path + "\\images", "stop.png", size=(30, 30))
+        image = TkImage(".\\images", "stop.png", size=(30, 30))
         stop_button = Button(side_bar, "stop", image=image, text="",
                              command=lambda: self.server_handler.stop_all_servers(), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-        image = TkImage(self.current_path + "\\images", "grid.png", size=(30, 30))
-        grid_button = Button(side_bar, "grid", image=image, text="", command=lambda: print("click!"), width=40,
-                             fg_color="transparent", bg_color="transparent", hover_color="gray12")
-
-        image = TkImage(self.current_path + "\\images", "admin_panel.png", size=(30, 30))
-        admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
-                                    command=lambda: print("click!"), width=40,
-                                    fg_color="transparent", bg_color="transparent", hover_color="gray12")
-
         gear_button.grid(row=0, column=0, padx=10, pady=10)
         start_button.grid(row=1, column=0, padx=10, pady=(0, 10))
         stop_button.grid(row=2, column=0, padx=10, pady=(0, 10))
-        grid_button.grid(row=3, column=0, padx=10, pady=(0, 10))
-        admin_panel_button.grid(row=4, column=0, padx=10, pady=(0, 10))
+
+        if self.admin:
+            image = TkImage(".\\images", "grid.png", size=(30, 30))
+            grid_button = Button(side_bar, "grid", image=image, text="", command=lambda: print("click!"), width=40,
+                                 fg_color="transparent", bg_color="transparent", hover_color="gray12")
+
+            image = TkImage(".\\images", "admin_panel.png", size=(30, 30))
+            admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
+                                        command=lambda: print("click!"), width=40,
+                                        fg_color="transparent", bg_color="transparent", hover_color="gray12")
+
+            grid_button.grid(row=3, column=0, padx=10, pady=(0, 10))
+            admin_panel_button.grid(row=4, column=0, padx=10, pady=(0, 10))
 
         return side_bar
 
@@ -299,8 +362,8 @@ class App(customtkinter.CTk):
             bat_name += ".bat"
 
         error, saves_files, bat_files = [], [], []
-        saves_files_path = self.server_handler.global_path + "\\Saved"
-        bat_files_path = self.server_handler.global_path+"\\Binaries\\Win64"
+        saves_files_path = self.server_handler.shooter_game_path + "\\Saved"
+        bat_files_path = self.server_handler.shooter_game_path+"\\Binaries\\Win64"
         try:
             saves_files = os.listdir(saves_files_path)
         except FileNotFoundError:
@@ -315,7 +378,7 @@ class App(customtkinter.CTk):
             self.add_server_frame.hide_error_label()
             self.add_server_frame.grid_forget()
 
-            tk_image = TkImage(self.current_path + "\\images\\versions", self.image_version[version], size=(500, 280))
+            tk_image = TkImage(".\\images\\versions", self.image_version[version], size=(500, 280))
             self.buttons_images.append(tk_image)
             image_ext = self.image_version[version].split(".")[-1]
             tk_image.image.save(f".\\images\\thumbnails\\{name}.{image_ext}")

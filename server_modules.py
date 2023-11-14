@@ -37,8 +37,16 @@ class ServerHandler:
     def __init__(self):
         self.servers = self.get_servers()
         with open('params.txt', 'r') as f:
-            self.global_path = f.readlines()[0]
-            self.global_path = self.global_path.split("=")[1][1:].strip("\n")
+            self.shooter_game_path = f.readlines()[0]
+            self.shooter_game_path = self.shooter_game_path.split("=")[1].strip("\n")
+
+    def update_shooter_game_path(self, path):
+        self.shooter_game_path = path
+        with open('params.txt', 'r') as f:
+            lines = f.readlines()
+        with open('params.txt', 'w') as f:
+            lines[0] = f"pathToShooterGame={path}\n"
+            f.writelines(lines)
 
     @staticmethod
     def get_servers() -> list[Server]:
@@ -65,12 +73,12 @@ class ServerHandler:
     def start_server(self, name):
         for server in self.servers:
             if name.lower() in server.name.lower():
-                server.start(self.global_path)
+                server.start(self.shooter_game_path)
 
     def start_all_servers(self):
         for server in self.servers:
             if not server.is_online():
-                server.start(self.global_path)
+                server.start(self.shooter_game_path)
 
     def stop_all_servers(self):
         for server in self.servers:
