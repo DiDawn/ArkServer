@@ -34,11 +34,16 @@ class DataExtractor:
         return params
 
     def update_param(self, param, value) -> None:
-        setattr(self.params, param, value)
-        with open("params.csv", "w", encoding="utf8", newline="") as f:
-            writer = csv.writer(f, delimiter=',')
-            for key, value in self.params.__dict__.items():
-                writer.writerow([key, value])
+        print(param, value)
+        if not self.params.__dict__[param] == value:
+            print(value)
+            setattr(self.params, param, value)
+            with open("params.csv", "w", encoding="utf8", newline="") as f:
+                writer = csv.writer(f, delimiter=',')
+                for key, value in self.params.__dict__.items():
+                    if value is None:
+                        value = "None"
+                    writer.writerow([key, value])
 
     @staticmethod
     def get_servers() -> list[ArkServer]:

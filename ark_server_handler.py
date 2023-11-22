@@ -3,8 +3,8 @@ from ark_server import ArkServer
 
 
 class ArkServerHandler:
-    def __init__(self):
-        self.data_extractor = DataExtractor()
+    def __init__(self, data_extractor: DataExtractor):
+        self.data_extractor = data_extractor
         self.servers = self.data_extractor.get_servers()
         self.shooter_game_path = self.data_extractor.params.pathToShooterGame
 

@@ -28,22 +28,22 @@ class TkImage(customtkinter.CTkImage):
 
 
 class ParamsFrame(customtkinter.CTkFrame):
-    def __init__(self, master, admin: bool, shooter_game_path: str, server_handler, **kwargs):
+    def __init__(self, master, admin: bool, server_handler, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
         self.admin = admin
         self.server_handler = server_handler
-        self.shooter_game_path = shooter_game_path
+        self.data_extractor = server_handler.data_extractor
         self.visible = False
 
-        self.admin_frame, self.user_frame, self.server_port_entry, self.target_ip_entry, self.target_port_entry = self.frame_constructor()
+        self.admin_frame, self.user_frame, self.path_entry, self.server_port_entry, self.target_ip_entry, self.target_port_entry = self.frame_constructor()
 
     def frame_constructor(self):
         # admin frame
         admin_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
         path_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Path to ShooterGame.exe")
-        if self.shooter_game_path:
-            path_entry.insert(0, self.shooter_game_path)
+        if self.data_extractor.params.pathToShooterGame:
+            path_entry.insert(0, self.data_extractor.params.pathToShooterGame)
 
         folder_button = customtkinter.CTkButton(admin_entry_frame, text="",
                                                 command=lambda: self.select_folder(path_entry),
@@ -52,6 +52,8 @@ class ParamsFrame(customtkinter.CTkFrame):
                                                               size=(15, 15)))
 
         server_port_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Server port")
+        if self.data_extractor.params.serverPort is not None:
+            server_port_entry.insert(0, self.data_extractor.params.serverPort)
         # grid admin frame
         path_entry.grid(row=0, column=0, padx=(30, 0), pady=(15, 15), sticky="w")
         folder_button.grid(row=0, column=1)
@@ -60,19 +62,26 @@ class ParamsFrame(customtkinter.CTkFrame):
         # user frame
         user_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
         target_ip_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target ip")
+        if self.data_extractor.params.targetIp is not None:
+            target_ip_entry.insert(0, self.data_extractor.params.targetIp)
         target_port_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target port")
+        if self.data_extractor.params.targetPort is not None:
+            target_port_entry.insert(0, self.data_extractor.params.targetPort)
         # grid user frame
         target_ip_entry.grid(row=0, column=0, padx=30, pady=(15, 15))
         target_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
 
-        # modify servers button
+        # for admin and user
         modify_servers_button = customtkinter.CTkButton(self, text="Modify servers",
                                                         command=lambda: self.modify_servers(), width=200)
+        save_changes_button = customtkinter.CTkButton(self, text="Save changes",
+                                                      command=lambda: self.save_changes(), width=200)
 
         user_entry_frame.grid(row=1, column=0, padx=30, pady=15)
-        modify_servers_button.grid(row=2, column=0, padx=30, pady=(15, 15))
+        modify_servers_button.grid(row=2, column=0, padx=30, pady=15)
+        save_changes_button.grid(row=3, column=0, padx=30, pady=(0, 15))
 
-        return admin_entry_frame, user_entry_frame, server_port_entry, target_ip_entry, target_port_entry
+        return admin_entry_frame, user_entry_frame, path_entry, server_port_entry, target_ip_entry, target_port_entry
 
     def select_folder(self, entry: customtkinter.CTkEntry):
         result = filedialog.askdirectory(title="select a folder")
@@ -92,6 +101,14 @@ class ParamsFrame(customtkinter.CTkFrame):
             self.grid(row=0, column=0)
             self.lift()
             self.visible = True
+
+    def save_changes(self):
+        if self.admin:
+            self.data_extractor.update_param("serverPort", self.server_port_entry.get())
+            self.server_handler.update_shooter_game_path(self.path_entry.get())
+        else:
+            self.data_extractor.update_param("targetIp", self.target_ip_entry.get())
+            self.data_extractor.update_param("targetPort", self.target_port_entry.get())
 
     def modify_servers(self):
         pass
@@ -197,7 +214,7 @@ class App(customtkinter.CTk):
         super().__init__(*args, **kwargs)
 
         self.data_extractor = DataExtractor()
-        self.server_handler = ArkServerHandler()
+        self.server_handler = ArkServerHandler(self.data_extractor)
 
         self.title("Ark Server Manager")
         self.geometry(f"{self.width}x{self.height}")
@@ -232,8 +249,7 @@ class App(customtkinter.CTk):
         self.add_server_frame = AddServerFrame(self, self.add_server, fg_color="transparent",
                                                bg_color="transparent")
 
-        self.params_frame = ParamsFrame(self, self.admin, self.data_extractor.params.pathToShooterGame,
-                                        self.server_handler, fg_color="transparent")
+        self.params_frame = ParamsFrame(self, self.admin, self.server_handler, fg_color="transparent")
 
     def login_event(self):
         print("Login pressed - username:", self.username_entry.get(), "password:", self.password_entry.get())
