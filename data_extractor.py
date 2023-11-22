@@ -1,7 +1,7 @@
 import os
 import csv
 from dataclasses import dataclass
-from server_modules import Server
+from ark_server import ArkServer
 
 
 @dataclass
@@ -41,12 +41,12 @@ class DataExtractor:
                 writer.writerow([key, value])
 
     @staticmethod
-    def get_servers() -> list[Server]:
+    def get_servers() -> list[ArkServer]:
         servers = []
         with open('apps.txt', 'r') as f:
             for line in f.readlines():
                 version, name, save_name, bat_name = line.strip("\n").split("|")
-                server = Server(version, name, save_name, bat_name)
+                server = ArkServer(version, name, save_name, bat_name)
                 servers.append(server)
         return servers
 

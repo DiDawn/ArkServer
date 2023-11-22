@@ -2,7 +2,7 @@ import customtkinter
 from PIL import Image
 from tkinter import filedialog
 import os
-from server_modules import ServerHandler
+from ark_server_handler import ArkServerHandler
 from passlib.hash import sha256_crypt
 from data_extractor import DataExtractor
 
@@ -45,7 +45,8 @@ class ParamsFrame(customtkinter.CTkFrame):
         if self.shooter_game_path:
             path_entry.insert(0, self.shooter_game_path)
 
-        folder_button = customtkinter.CTkButton(admin_entry_frame, text="", command=lambda: self.select_folder(path_entry),
+        folder_button = customtkinter.CTkButton(admin_entry_frame, text="",
+                                                command=lambda: self.select_folder(path_entry),
                                                 width=20, fg_color="gray24", hover_color="gray12",
                                                 image=TkImage(".\\images", "folder.png",
                                                               size=(15, 15)))
@@ -196,7 +197,7 @@ class App(customtkinter.CTk):
         super().__init__(*args, **kwargs)
 
         self.data_extractor = DataExtractor()
-        self.server_handler = ServerHandler()
+        self.server_handler = ArkServerHandler()
 
         self.title("Ark Server Manager")
         self.geometry(f"{self.width}x{self.height}")
@@ -241,8 +242,9 @@ class App(customtkinter.CTk):
         username = sha256_crypt.verify(self.username_entry.get(), admin_username)
         password = sha256_crypt.verify(self.password_entry.get(), admin_password)
         self.admin = username and password
-        print(f"{self.admin=}")
         self.admin = True
+        print(f"{self.admin=}")
+
         if self.admin:
             self.buttons_images.append(TkImage(".\\images", "plus.png", size=(500, 280)))
             self.params_frame.admin = True
