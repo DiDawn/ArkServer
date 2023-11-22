@@ -4,6 +4,7 @@ from tkinter import filedialog
 import os
 from server_modules import ServerHandler
 from passlib.hash import sha256_crypt
+from data_extractor import DataExtractor
 
 customtkinter.set_appearance_mode("dark")
 
@@ -38,6 +39,7 @@ class ParamsFrame(customtkinter.CTkFrame):
         self.admin_frame, self.user_frame, self.server_port_entry, self.target_ip_entry, self.target_port_entry = self.frame_constructor()
 
     def frame_constructor(self):
+        # admin frame
         admin_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
         path_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Path to ShooterGame.exe")
         if self.shooter_game_path:
@@ -49,19 +51,25 @@ class ParamsFrame(customtkinter.CTkFrame):
                                                               size=(15, 15)))
 
         server_port_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Server port")
-
+        # grid admin frame
         path_entry.grid(row=0, column=0, padx=(30, 0), pady=(15, 15), sticky="w")
         folder_button.grid(row=0, column=1)
         server_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
 
+        # user frame
         user_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
         target_ip_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target ip")
         target_port_entry = customtkinter.CTkEntry(user_entry_frame, width=200, placeholder_text="Target port")
-
+        # grid user frame
         target_ip_entry.grid(row=0, column=0, padx=30, pady=(15, 15))
         target_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
 
+        # modify servers button
+        modify_servers_button = customtkinter.CTkButton(self, text="Modify servers",
+                                                        command=lambda: self.modify_servers(), width=200)
+
         user_entry_frame.grid(row=1, column=0, padx=30, pady=15)
+        modify_servers_button.grid(row=2, column=0, padx=30, pady=(15, 15))
 
         return admin_entry_frame, user_entry_frame, server_port_entry, target_ip_entry, target_port_entry
 
@@ -83,6 +91,9 @@ class ParamsFrame(customtkinter.CTkFrame):
             self.grid(row=0, column=0)
             self.lift()
             self.visible = True
+
+    def modify_servers(self):
+        pass
 
 
 class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
@@ -184,6 +195,7 @@ class App(customtkinter.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.data_extractor = DataExtractor()
         self.server_handler = ServerHandler()
 
         self.title("Ark Server Manager")
@@ -219,8 +231,8 @@ class App(customtkinter.CTk):
         self.add_server_frame = AddServerFrame(self, self.add_server, fg_color="transparent",
                                                bg_color="transparent")
 
-        self.params_frame = ParamsFrame(self, self.admin, self.server_handler.shooter_game_path, self.server_handler,
-                                        fg_color="transparent")
+        self.params_frame = ParamsFrame(self, self.admin, self.data_extractor.params.pathToShooterGame,
+                                        self.server_handler, fg_color="transparent")
 
     def login_event(self):
         print("Login pressed - username:", self.username_entry.get(), "password:", self.password_entry.get())
@@ -362,8 +374,8 @@ class App(customtkinter.CTk):
             bat_name += ".bat"
 
         error, saves_files, bat_files = [], [], []
-        saves_files_path = self.server_handler.shooter_game_path + "\\Saved"
-        bat_files_path = self.server_handler.shooter_game_path+"\\Binaries\\Win64"
+        saves_files_path = self.data_extractor.params.pathToShooterGame + "\\Saved"
+        bat_files_path = self.data_extractor.params.pathToShooterGame + "\\Binaries\\Win64"
         try:
             saves_files = os.listdir(saves_files_path)
         except FileNotFoundError:

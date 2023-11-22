@@ -1,22 +1,60 @@
-# importing only those functions 
-# which are needed 
-from tkinter import *
-from tkinter.ttk import *
+import os
+import csv
+from dataclasses import dataclass
 
-# creating tkinter window 
-root = Tk()
 
-# Adding widgets to the root window 
-Label(root, text='GeeksforGeeks', font=(
-    'Verdana', 15)).grid(row=0, column=0, pady=10)
+def extract():
+    params = {}
+    if os.path.exists("params.csv"):
+        with open("params.csv", encoding="utf8", newline="") as f:
+            data = csv.reader(f)
+            for line in data:
+                params[line[0]] = line[1]
+    else:
+        with open("params.csv", encoding="utf8", newline="") as f:
+            writer = csv.writer(f, delimiter=',')
+            writer.writerow(["pathToShooterGame", "None"])
+            writer.writerow(["serverPort", "None"])
+            writer.writerow(["targetPort", "None"])
+            writer.writerow(["targetIp", "None"])
 
-# Creating a photoimage object to use image 
-photo = PhotoImage(file=r".\images\edit_test.png")
-# Resizing image to fit on button
-photoimage = photo.subsample(3, 3)
+    return params
 
-# here, image option is used to 
-# set image on button 
-Button(root, text='Click Me !', image=photoimage).grid(row=0, column=0)
 
-mainloop()
+@dataclass
+class Params:
+    pathToShooterGame: str = None
+    serverPort: int = None
+    targetPort: int = None
+    targetIp: str = None
+
+
+def extract_params():
+    params = Params()
+    if os.path.exists("params.csv"):
+        with open("params.csv", encoding="utf8", newline="") as f:
+            data = csv.reader(f)
+            for line in data:
+                if line[1] != "None":
+                    setattr(params, line[0], line[1])
+    else:
+        with open("params.csv", encoding="utf8", newline="") as f:
+            writer = csv.writer(f, delimiter=',')
+            writer.writerows([["pathToShooterGame", "None"], ["serverPort", "None"], ["targetPort", "None"],
+                              ["targetIp", "None"]])
+
+    return params
+
+
+def update_param(param, value):
+    params = extract_params()
+    setattr(params, param, value)
+    with open("params.csv", "w", encoding="utf8", newline="") as f:
+        writer = csv.writer(f, delimiter=',')
+        for key, value in params.__dict__.items():
+            if value is None:
+                value = "None"
+            writer.writerow([key, value])
+
+
+update_param("targetIp", "192.168.1.1")

@@ -1,6 +1,7 @@
 import subprocess
 import sys
 from pid_modules import get_processes
+from data_extractor import DataExtractor
 
 
 class Server:
@@ -35,40 +36,18 @@ class Server:
 
 class ServerHandler:
     def __init__(self):
-        self.servers = self.get_servers()
-        with open('params.txt', 'r') as f:
-            self.shooter_game_path = f.readlines()[0]
-            self.shooter_game_path = self.shooter_game_path.split("=")[1].strip("\n")
+        self.data_extractor = DataExtractor()
+        self.servers = self.data_extractor.get_servers()
+        self.shooter_game_path = self.data_extractor.params.pathToShooterGame
 
     def update_shooter_game_path(self, path):
         self.shooter_game_path = path
-        with open('params.txt', 'r') as f:
-            lines = f.readlines()
-        with open('params.txt', 'w') as f:
-            lines[0] = f"pathToShooterGame={path}\n"
-            f.writelines(lines)
-
-    @staticmethod
-    def get_servers() -> list[Server]:
-        servers = []
-        with open('apps.txt', 'r') as f:
-            for line in f.readlines():
-                version, name, save_name, bat_name = line.strip("\n").split("|")
-                server = Server(version, name, save_name, bat_name)
-                servers.append(server)
-        return servers
+        self.data_extractor.update_param("pathToShooterGame", path)
 
     def add_server(self, server_version, server_name, save_name, bat_name) -> None:
         server = Server(server_version, server_name, save_name, bat_name)
         self.servers.append(server)
-        with open("apps.txt", "a") as f:
-            f.write(f"{server_version}|{server_name}|{save_name}|{bat_name}\n")
-
-    def __str__(self):
-        final_str = ""
-        for server in self.servers:
-            final_str += f"{server.version}|{server.name}|{server.save_name}|{server.bat_name}\n"
-        return final_str
+        self.data_extractor.add_server(server_version, server_name, save_name, bat_name)
 
     def start_server(self, name):
         for server in self.servers:
@@ -94,6 +73,12 @@ class ServerHandler:
         for server in self.servers:
             if server.name == name:
                 return server.is_online()
+
+    def __str__(self):
+        final_str = ""
+        for server in self.servers:
+            final_str += f"{server.version}|{server.name}|{server.save_name}|{server.bat_name}\n"
+        return final_str
 
 
 if __name__ == "__main__":
