@@ -10,12 +10,15 @@ customtkinter.set_appearance_mode("dark")
 
 
 class Button(customtkinter.CTkButton):
-    def __init__(self, master, name, command, command_args=None, **kwargs):
+    def __init__(self, master, name, call_back, command_arg=None, **kwargs):
+        """
+        :type command: function
+        """
         super().__init__(master, **kwargs)
-        if command_args is not None:
-            self.configure(command=lambda: command(*command_args))
+        if command_arg is not None:
+            self.configure(command=lambda: call_back(command_arg))
         else:
-            self.configure(command=lambda: command())
+            self.configure(command=lambda: call_back())
 
         self.name = name
 
@@ -73,7 +76,7 @@ class ParamsFrame(customtkinter.CTkFrame):
 
         # for admin and user
         modify_servers_button = customtkinter.CTkButton(self, text="Modify servers",
-                                                        command=lambda: self.modify_servers(), width=200)
+                                                        command=lambda: print("click!"), width=200)
         save_changes_button = customtkinter.CTkButton(self, text="Save changes",
                                                       command=lambda: self.save_changes(), width=200)
 
@@ -126,7 +129,7 @@ class ScrollableLabelButtonFrame(customtkinter.CTkScrollableFrame):
     def add_item(self, image, command, index: tuple[int, int], padding=10, server=None, name="", **kwargs):
         i, j = index
         if server is not None:
-            button = Button(self, server.name, command, command_args=server.name, text="", image=image, **kwargs)
+            button = Button(self, server.name, command, command_arg=server.name, text="", image=image, **kwargs)
         else:
             button = Button(self, name, command, text="", image=image, **kwargs)
 
@@ -277,17 +280,17 @@ class App(customtkinter.CTk):
 
         image = TkImage(".\\images", "gear.png", size=(30, 30))
         gear_button = Button(side_bar, "gear", image=image, text="",
-                             command=lambda: self.params_frame.hide_show(),
+                             call_back=lambda: self.params_frame.hide_show(),
                              width=40, fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
         image = TkImage(".\\images", "start.png", size=(30, 30))
         start_button = Button(side_bar, "start", image=image, text="",
-                              command=lambda: self.server_handler.start_all_servers(), width=40,
+                              call_back=lambda: self.server_handler.start_all_servers(), width=40,
                               fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
         image = TkImage(".\\images", "stop.png", size=(30, 30))
         stop_button = Button(side_bar, "stop", image=image, text="",
-                             command=lambda: self.server_handler.stop_all_servers(), width=40,
+                             call_back=lambda: self.server_handler.stop_all_servers(), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
         gear_button.grid(row=0, column=0, padx=10, pady=10)
@@ -296,12 +299,13 @@ class App(customtkinter.CTk):
 
         if self.admin:
             image = TkImage(".\\images", "grid.png", size=(30, 30))
-            grid_button = Button(side_bar, "grid", image=image, text="", command=lambda: print("click!"), width=40,
+            grid_button = Button(side_bar, "grid", image=image, text="",
+                                 call_back=lambda: print("click!"), width=40,
                                  fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
             image = TkImage(".\\images", "admin_panel.png", size=(30, 30))
             admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
-                                        command=lambda: print("click!"), width=40,
+                                        call_back=lambda: print("click!"), width=40,
                                         fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
             grid_button.grid(row=3, column=0, padx=10, pady=(0, 10))
@@ -352,7 +356,7 @@ class App(customtkinter.CTk):
 
             buttons = []
             for server, image in zip(self.server_handler.servers, self.buttons_images):
-                button = (Button(main_frame, image.name, self.button_event, command_args=image.name, text="",
+                button = (Button(main_frame, image.name, self.button_event, command_arg=image.name, text="",
                                  image=image, bg_color="transparent", hover_color="darkslategray"))
                 if server.is_online():
                     button.configure(fg_color="green4")
