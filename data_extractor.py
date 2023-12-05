@@ -59,3 +59,24 @@ class DataExtractor:
     def add_server(server_version, server_name, save_name, bat_name) -> None:
         with open('apps.txt', 'a') as f:
             f.write(f"{server_version}|{server_name}|{save_name}|{bat_name}\n")
+
+    @staticmethod
+    def update_server(old_name, server_version, server_name, save_name, bat_name) -> None:
+        with open('apps.txt', 'r') as f:
+            lines = f.readlines()
+        with open('apps.txt', 'w') as f:
+            for line in lines:
+                if {old_name} == line.split("|")[1]:
+                    f.write(f"{server_version}|{server_name}|{save_name}|{bat_name}\n")
+                else:
+                    f.write(line)
+
+    @staticmethod
+    def delete_server(server_name) -> None:
+        with open('apps.txt', 'r') as f:
+            lines = f.readlines()
+        with open('apps.txt', 'w') as f:
+            for line in lines:
+                print(line.split("|")[1], server_name)
+                if server_name != line.split("|")[1]:
+                    f.write(line)

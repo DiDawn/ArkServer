@@ -33,14 +33,25 @@ class ArkServerHandler:
                 server.close()
 
     def close_server(self, name):
-        for server in self.servers:
-            if server.name == name:
-                server.close()
+        self.get_server(name).close()
 
     def is_server_online(self, name):
+        return self.get_server(name).is_online()
+
+    def get_server(self, name):
         for server in self.servers:
             if server.name == name:
-                return server.is_online()
+                return server
+
+    def update_server(self, name, server_version, server_name, save_name, bat_name):
+        server = self.get_server(name)
+        server.update(server_version, server_name, save_name, bat_name)
+        self.data_extractor.update_server(name, server_version, server_name, save_name, bat_name)
+
+    def delete_server(self, name):
+        server = self.get_server(name)
+        self.servers.remove(server)
+        self.data_extractor.delete_server(name)
 
     def __str__(self):
         final_str = ""

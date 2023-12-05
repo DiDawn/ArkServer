@@ -31,3 +31,9 @@ class ArkServer:
         if return_pid:
             return False, 0
         return False
+
+    def update(self, server_version, server_name, save_name, bat_name):
+        self.version = server_version
+        self.name = server_name
+        self.save_name = save_name
+        self.bat_name = bat_name
