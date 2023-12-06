@@ -15,6 +15,7 @@ class Params:
 class DataExtractor:
     def __init__(self):
         self.params = self.extract_params()
+        self.extract_servers()
 
     @staticmethod
     def extract_params() -> Params:
@@ -46,37 +47,44 @@ class DataExtractor:
                     writer.writerow([key, value])
 
     @staticmethod
-    def get_servers() -> list[ArkServer]:
+    def extract_servers():
         servers = []
-        with open('apps.txt', 'r') as f:
-            for line in f.readlines():
-                version, name, save_name, bat_name = line.strip("\n").split("|")
-                server = ArkServer(version, name, save_name, bat_name)
-                servers.append(server)
+        if os.path.exists("servers.csv"):
+            with open("servers.csv", encoding="utf-8", newline="") as f:
+                data = csv.reader(f)
+                for line in data:
+                    version, name, save_name, bat_name = line
+                    server = ArkServer(version, name, save_name, bat_name)
+                    servers.append(server)
+        else:
+            with open("servers.csv", encoding="utf-8", newline=""):
+                pass
+
         return servers
 
     @staticmethod
     def add_server(server_version, server_name, save_name, bat_name) -> None:
-        with open('apps.txt', 'a') as f:
-            f.write(f"{server_version}|{server_name}|{save_name}|{bat_name}\n")
+        with open("servers.csv", "a", encoding="utf-8", newline="")as f:
+            writer = csv.writer(f)
+            writer.writerow([server_version, server_name, save_name, bat_name])
 
     @staticmethod
     def update_server(old_name, server_version, server_name, save_name, bat_name) -> None:
-        with open('apps.txt', 'r') as f:
-            lines = f.readlines()
-        with open('apps.txt', 'w') as f:
-            for line in lines:
-                if {old_name} == line.split("|")[1]:
-                    f.write(f"{server_version}|{server_name}|{save_name}|{bat_name}\n")
-                else:
-                    f.write(line)
+        with open("servers.csv", encoding="utf-8", newline="") as f:
+            data = csv.reader(f)
+        with open("servers.csv", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            for i, line in data:
+                if line[1] == old_name:
+                    line = [server_version, server_name, save_name, bat_name]
+                writer.writerow(line)
 
     @staticmethod
-    def delete_server(server_name) -> None:
-        with open('apps.txt', 'r') as f:
-            lines = f.readlines()
-        with open('apps.txt', 'w') as f:
-            for line in lines:
-                print(line.split("|")[1], server_name)
-                if server_name != line.split("|")[1]:
-                    f.write(line)
+    def delete_server(server_name):
+        with open("servers.csv", encoding="utf-8", newline="") as f:
+            data = csv.reader(f)
+        with open("servers.csv", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            for i, line in data:
+                if line[1] != server_name:
+                    writer.writerow(line)

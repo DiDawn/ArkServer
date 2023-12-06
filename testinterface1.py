@@ -5,7 +5,6 @@ import os
 from ark_server_handler import ArkServerHandler
 from passlib.hash import sha256_crypt
 from data_extractor import DataExtractor
-from time import sleep
 
 customtkinter.set_appearance_mode("dark")
 
@@ -398,13 +397,12 @@ class App(customtkinter.CTk):
         main_frame = customtkinter.CTkFrame(self, corner_radius=0)
         buttons_master = main_frame
         scrollable_frame = None
-        if len(self.buttons_images) > 4 or (self.admin and len(self.buttons_images) > 3):
+        if len(self.server_handler.servers) > 4 or (self.admin and len(self.server_handler.servers) > 3):
             scrollable_frame = ScrollableButtonFrame(main_frame)
             buttons_master = scrollable_frame
 
         buttons = []
         items = self.match_image_server()
-
         for server, image in items:
             button = Button(buttons_master, server.name, call_back=self.button_event, button_type="server",
                             command_arg=server.name, text="", image=image, bg_color="transparent",
@@ -545,11 +543,12 @@ class App(customtkinter.CTk):
 
     def match_image_server(self) -> list:
         match_list = []
+        print(self.server_handler.servers)
         for server in self.server_handler.servers:
             for image in self.buttons_images:
                 if server.name == image.name.split(".")[0]:
                     match_list.append((server, image))
-
+        print(match_list)
         return match_list
 
     @staticmethod
