@@ -1,4 +1,4 @@
-pathToShooterGame,Test
-serverPort,None
-targetPort,None
+pathToShooterGame,Test\test2
+serverPort,42069
+targetPort,42069
 targetIp,192.168.1.1

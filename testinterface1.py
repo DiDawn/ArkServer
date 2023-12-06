@@ -56,7 +56,7 @@ class ParamsFrame(customtkinter.CTkFrame):
         folder_button = customtkinter.CTkButton(admin_entry_frame, text="",
                                                 command=lambda: self.select_folder(path_entry),
                                                 width=20, fg_color="gray24", hover_color="gray12",
-                                                image=TkImage(".\\images", "folder.png",
+                                                image=TkImage(".\\images\\assets", "folder.png",
                                                               size=(15, 15)))
 
         server_port_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Server port")
@@ -231,7 +231,7 @@ class AddServerFrame(customtkinter.CTkFrame):
         close_button = customtkinter.CTkButton(top_frame, text="",
                                                command=lambda: self.close_self(),
                                                width=20, fg_color="gray24", hover_color="gray12",
-                                               image=TkImage(".\\images", "close.png",
+                                               image=TkImage(".\\images\\assets", "close.png",
                                                              size=(15, 15)))
         add_server_label.grid(row=0, column=0, padx=45)
         close_button.grid(row=0, column=0, sticky="ne")
@@ -289,7 +289,7 @@ class App(customtkinter.CTk):
 
         # load and create background image
         self.current_path = os.path.dirname(os.path.realpath(__file__))
-        self.bg_image = customtkinter.CTkImage(Image.open(".\\images\\wallpaper.png"),
+        self.bg_image = customtkinter.CTkImage(Image.open("images/assets/wallpaper.png"),
                                                size=(self.width, self.height))
         self.bg_image_label = customtkinter.CTkLabel(self, image=self.bg_image)
         self.bg_image_label.grid(row=0, column=0)
@@ -330,7 +330,7 @@ class App(customtkinter.CTk):
         print(f"{self.admin=}")
 
         if self.admin:
-            self.buttons_images.append(TkImage(".\\images", "plus.png", size=(500, 280)))
+            self.buttons_images.append(TkImage(".\\images\\assets", "plus.png", size=(500, 280)))
             self.params_frame.admin = True
 
         self.login_frame.grid_forget()  # remove login frame
@@ -343,17 +343,17 @@ class App(customtkinter.CTk):
     def side_bar_constructor(self):
         side_bar = customtkinter.CTkFrame(self)
 
-        image = TkImage(".\\images", "gear.png", size=(30, 30))
+        image = TkImage(".\\images\\assets", "gear.png", size=(30, 30))
         gear_button = Button(side_bar, "gear", image=image, text="",
                              call_back=lambda: self.params_frame.hide_show(),
                              width=40, fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-        image = TkImage(".\\images", "start.png", size=(30, 30))
+        image = TkImage(".\\images\\assets", "start.png", size=(30, 30))
         start_button = Button(side_bar, "start", image=image, text="",
                               call_back=lambda: self.server_handler.start_all_servers(), width=40,
                               fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-        image = TkImage(".\\images", "stop.png", size=(30, 30))
+        image = TkImage(".\\images\\assets", "stop.png", size=(30, 30))
         stop_button = Button(side_bar, "stop", image=image, text="",
                              call_back=lambda: self.server_handler.stop_all_servers(), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
@@ -363,12 +363,12 @@ class App(customtkinter.CTk):
         stop_button.grid(row=2, column=0, padx=10, pady=(0, 10))
 
         if self.admin:
-            image = TkImage(".\\images", "grid.png", size=(30, 30))
+            image = TkImage(".\\images\\assets", "grid.png", size=(30, 30))
             grid_button = Button(side_bar, "grid", image=image, text="",
                                  call_back=lambda: print("click!"), width=40,
                                  fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
-            image = TkImage(".\\images", "admin_panel.png", size=(30, 30))
+            image = TkImage(".\\images\\assets", "admin_panel.png", size=(30, 30))
             admin_panel_button = Button(side_bar, "admin_panel", image=image, text="",
                                         call_back=lambda: print("click!"), width=40,
                                         fg_color="transparent", bg_color="transparent", hover_color="gray12")
@@ -443,7 +443,7 @@ class App(customtkinter.CTk):
         self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)
 
     def update_button_image(self, old_name, new_name, version):
-        new_image = TkImage(".\\images\\versions", self.image_version[version], size=(500, 280))
+        new_image = TkImage("images/assets/versions", self.image_version[version], size=(500, 280))
         image_ext = self.image_version[version].split(".")[-1]
         new_image.name = f"{new_name}.{image_ext}"
         new_image.image.save(f".\\images\\thumbnails\\{new_name}.{image_ext}")
@@ -499,7 +499,7 @@ class App(customtkinter.CTk):
             self.add_server_frame.hide_error_label()
             self.add_server_frame.grid_forget()
 
-            tk_image = TkImage(".\\images\\versions", self.image_version[version], size=(500, 280))
+            tk_image = TkImage("images/assets/versions", self.image_version[version], size=(500, 280))
             self.buttons_images.append(tk_image)
             image_ext = self.image_version[version].split(".")[-1]
             tk_image.image.save(f".\\images\\thumbnails\\{name}.{image_ext}")

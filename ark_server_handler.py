@@ -46,7 +46,7 @@ class ArkServerHandler:
     def update_server(self, name, server_version, server_name, save_name, bat_name):
         server = self.get_server(name)
         server.update(server_version, server_name, save_name, bat_name)
-        self.data_extractor.update_server(name, server_version, server_name, save_name, bat_name)
+        self.data_extractor.update_server(self.servers)
 
     def delete_server(self, name):
         server = self.get_server(name)

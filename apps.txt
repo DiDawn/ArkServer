@@ -1,5 +1,4 @@
 Genesis: Part 2|Genesis2|GenesisPart2_1|Start_GenesisPart2.bat
 Genesis: Part 1|g1|b|c.bat
 Valguero|v|a|b.bat
-Aberration|ab|b|c.bat
-The Island|b|a|c.bat
+Aberration|test8|b|c.bat

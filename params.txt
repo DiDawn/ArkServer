@@ -1,1 +1,4 @@
 pathToShooterGame=G:\SteamCMD\steamapps\common\ARK Survival Evolved Dedicated Server\ShooterGame
+serverPort=None
+targetPort=None
+targetIp=None

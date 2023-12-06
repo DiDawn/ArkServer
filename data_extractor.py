@@ -69,15 +69,11 @@ class DataExtractor:
             writer.writerow([server_version, server_name, save_name, bat_name])
 
     @staticmethod
-    def update_server(old_name, server_version, server_name, save_name, bat_name) -> None:
-        with open("servers.csv", encoding="utf-8", newline="") as f:
-            data = csv.reader(f)
-        with open("servers.csv", encoding="utf-8", newline="") as f:
+    def update_server(servers) -> None:
+        with open("servers.csv", "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
-            for i, line in data:
-                if line[1] == old_name:
-                    line = [server_version, server_name, save_name, bat_name]
-                writer.writerow(line)
+            for server in servers:
+                writer.writerow([server.version, server.name, server.save_name, server.bat_name])
 
     @staticmethod
     def delete_server(server_name):
