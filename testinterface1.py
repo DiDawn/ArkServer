@@ -33,12 +33,13 @@ class TkImage(customtkinter.CTkImage):
 
 class ParamsFrame(customtkinter.CTkFrame):
     def __init__(self, master, admin: bool, server_handler, refresh_main_frame, update_button_image,
-                 delete_button_image, **kwargs):
+                 delete_button_image, check_input_error, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
         self.refresh_main_frame = refresh_main_frame
         self.update_button_image = update_button_image
         self.delete_button_image = delete_button_image
+        self.check_input_error = check_input_error
         self.admin = admin
         self.server_handler = server_handler
         self.data_extractor = server_handler.data_extractor
@@ -169,25 +170,33 @@ class ParamsFrame(customtkinter.CTkFrame):
                                command_arg=([server, modify_server_attributes_frame]),
                                text="delete", fg_color="firebrick4", hover_color="firebrick3")
 
+        error_label = customtkinter.CTkLabel(modify_server_attributes_frame, text="", fg_color="transparent",
+                                             text_color="red4", width=200)
+
         server_name_input.grid(row=0, column=0, padx=30, pady=(15, 15))
         server_version.grid(row=1, column=0, padx=30, pady=(0, 15))
         server_save_name_input.grid(row=2, column=0, padx=30, pady=(0, 15))
         server_bat_name_input.grid(row=3, column=0, padx=30, pady=(0, 15))
         save_button.grid(row=4, column=0, padx=30, pady=(15, 15))
         delete_button.grid(row=5, column=0, padx=30, pady=(0, 15))
+        error_label.grid(row=6, column=0, padx=30, pady=(0, 15))
         modify_server_attributes_frame.grid(row=0, column=0)
         modify_server_attributes_frame.lift()
 
     def save_server(self, args):
         server, server_name, server_version, save_name, bat_name, frame = args
-        if server.version != server_version.get() or server.name != server_name.get():
-            self.update_button_image(server.name, server_name.get(), server_version.get())
+        prompt_error = self.check_input_error(server_version.get(), server_name.get(), save_name.get(), bat_name.get())
+        if prompt_error:
+            frame.error_label.configure(text=prompt_error)
+        else:
+            if server.version != server_version.get() or server.name != server_name.get():
+                self.update_button_image(server.name, server_name.get(), server_version.get())
 
-        self.server_handler.update_server(server.name, server_version.get(), server_name.get(),
-                                          save_name.get(), bat_name.get())
+            self.server_handler.update_server(server.name, server_version.get(), server_name.get(),
+                                              save_name.get(), bat_name.get())
 
-        frame.grid_forget()
-        self.refresh_main_frame()
+            frame.grid_forget()
+            self.refresh_main_frame()
 
     def delete_server(self, args):
         server, frame = args
@@ -317,7 +326,8 @@ class App(customtkinter.CTk):
                                                bg_color="transparent")
 
         self.params_frame = ParamsFrame(self, self.admin, self.server_handler, self.refresh_main_frame,
-                                        self.update_button_image, self.delete_button_image, fg_color="transparent")
+                                        self.update_button_image, self.delete_button_image,
+                                        self.check_input_error, fg_color="transparent")
 
     def login_event(self):
         print("Login pressed - username:", self.username_entry.get(), "password:", self.password_entry.get())
@@ -477,11 +487,24 @@ class App(customtkinter.CTk):
                     self.server_handler.start_server(item)
 
     def add_server(self, version, name, save_name, bat_name):
-        print(version, name, save_name, bat_name)
+        prompt_error = self.check_input_error(version, name, save_name, bat_name)
+        if prompt_error:
+            self.add_server_frame.show_error_label(prompt_error)
+        else:
+            self.add_server_frame.hide_error_label()
+            self.add_server_frame.grid_forget()
 
-        if not bat_name.endswith(".bat") and bat_name:
-            bat_name += ".bat"
+            tk_image = TkImage("images/assets/versions", self.image_version[version], size=(500, 280))
+            image_ext = self.image_version[version].split(".")[-1]
+            tk_image.image.save(f".\\images\\thumbnails\\{name}.{image_ext}")
+            tk_image.name = f"{name}.{image_ext}"
 
+            self.buttons_images.append(tk_image)
+            self.server_handler.add_server(version, name, save_name, bat_name)
+
+            self.refresh_main_frame()
+
+    def check_input_error(self, version, name, save_name, bat_name):
         error, saves_files, bat_files = [], [], []
         saves_files_path = self.data_extractor.params.pathToShooterGame + "\\Saved"
         bat_files_path = self.data_extractor.params.pathToShooterGame + "\\Binaries\\Win64"
@@ -494,23 +517,8 @@ class App(customtkinter.CTk):
         except FileNotFoundError:
             error.append(f"Invalid path for bat files: {bat_files_path}")
 
-        if name and save_name in saves_files and bat_name in bat_files:
-
-            self.add_server_frame.hide_error_label()
-            self.add_server_frame.grid_forget()
-
-            tk_image = TkImage("images/assets/versions", self.image_version[version], size=(500, 280))
-            self.buttons_images.append(tk_image)
-            image_ext = self.image_version[version].split(".")[-1]
-            tk_image.image.save(f".\\images\\thumbnails\\{name}.{image_ext}")
-
-            self.server_handler.add_server(version, name, save_name, bat_name)
-
-            self.buttons_images[-1], self.buttons_images[-2] = self.buttons_images[-2], self.buttons_images[-1]
-
-            self.main_frame.grid_forget()
-
-            self.refresh_main_frame()
+        if name and save_name in saves_files and bat_name in bat_files and self.data_extractor.params.pathToShooterGame:
+            return False
         else:
             if not save_name:
                 error.append("No save name")
@@ -530,7 +538,10 @@ class App(customtkinter.CTk):
             for element in error:
                 prompt_error += element + "\n"
 
-            self.add_server_frame.show_error_label(prompt_error)
+            if self.data_extractor.params.pathToShooterGame is None:
+                prompt_error = "No path to ShooterGame.exe"
+
+            return prompt_error
 
     def select_image(self, name):
         if name:

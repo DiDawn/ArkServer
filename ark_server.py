@@ -6,6 +6,7 @@ from pid_modules import get_processes
 class ArkServer:
     def __init__(self, server_version, server_name, save_name, bat_name):
         self.name = server_name
+        self.game_version = '358.17'
         self.version = server_version
         self.save_name = save_name
         self.bat_name = bat_name
@@ -13,7 +14,7 @@ class ArkServer:
     def start(self, path):
         if not self.is_online():
             go2 = path+"\\Binaries\\Win64"
-            command = f'{path[:2]} && cd "{go2}" && start {self.bat_name}'
+            command = f'{path[:2]} && cd "{go2}" && call {self.bat_name}'
             subprocess.run(command, shell=True)
 
     def close(self):

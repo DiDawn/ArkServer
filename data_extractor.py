@@ -27,7 +27,7 @@ class DataExtractor:
                     if line[1] != "None":
                         setattr(params, line[0], line[1].strip())
         else:
-            with open("params.csv", encoding="utf8", newline="") as f:
+            with open("params.csv", encoding="utf8", newline="", mode='w') as f:
                 writer = csv.writer(f, delimiter=',')
                 writer.writerows([["pathToShooterGame", "None"], ["serverPort", "None"], ["targetPort", "None"],
                                   ["targetIp", "None"]])
@@ -57,7 +57,7 @@ class DataExtractor:
                     server = ArkServer(version, name, save_name, bat_name)
                     servers.append(server)
         else:
-            with open("servers.csv", encoding="utf-8", newline=""):
+            with open("servers.csv", encoding="utf-8", newline="", mode='w'):
                 pass
 
         return servers
@@ -76,11 +76,9 @@ class DataExtractor:
                 writer.writerow([server.version, server.name, server.save_name, server.bat_name])
 
     @staticmethod
-    def delete_server(server_name):
-        with open("servers.csv", encoding="utf-8", newline="") as f:
-            data = csv.reader(f)
-        with open("servers.csv", encoding="utf-8", newline="") as f:
+    def delete_server(servers, server_name):
+        with open("servers.csv", "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
-            for i, line in data:
-                if line[1] != server_name:
-                    writer.writerow(line)
+            for server in servers:
+                if server.name != server_name:
+                    writer.writerow([server.version, server.name, server.save_name, server.bat_name])

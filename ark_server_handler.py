@@ -43,6 +43,9 @@ class ArkServerHandler:
             if server.name == name:
                 return server
 
+    def active_servers(self):
+        return [server for server in self.servers if server.is_online()]
+
     def update_server(self, name, server_version, server_name, save_name, bat_name):
         server = self.get_server(name)
         server.update(server_version, server_name, save_name, bat_name)
@@ -51,7 +54,7 @@ class ArkServerHandler:
     def delete_server(self, name):
         server = self.get_server(name)
         self.servers.remove(server)
-        self.data_extractor.delete_server(name)
+        self.data_extractor.delete_server(self.servers, name)
 
     def __str__(self):
         final_str = ""
