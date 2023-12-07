@@ -22,7 +22,7 @@ class Process:
         return False
 
     def __str__(self):
-        return f"{self.pid:}|{self.data:}"
+        return f"{self.pid=}|{self.data=}"
 
 
 # Callback
