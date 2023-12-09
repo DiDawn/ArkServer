@@ -1,11 +1,15 @@
 import socket
 from threading import Thread
 from time import localtime
+import os
 
 
 class Log:
     def __init__(self):
 
+        if not os.path.exists('log.txt'):
+            with open('log.txt', 'w') as f:
+                f.write('')
         with open('log.txt', 'r') as f:
             self.log = f.readlines()
 
