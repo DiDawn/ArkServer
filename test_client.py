@@ -22,4 +22,3 @@ class Client:
 
 
 client = Client(5050)
-client.send('Hello World!')

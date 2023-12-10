@@ -5,17 +5,26 @@ import os
 
 
 class Log:
-    def __init__(self):
+    def __init__(self, save_logs):
+        self.save_logs = save_logs
 
-        if not os.path.exists('log.txt'):
-            with open('log.txt', 'w') as f:
-                f.write('')
-        with open('log.txt', 'r') as f:
-            self.log = f.readlines()
+        if self.save_logs:
+            if not os.path.exists('log.txt'):
+                with open('log.txt', 'w') as f:
+                    f.write('')
+            with open('log.txt', 'r') as f:
+                self.log = f.readlines()
 
     def __str__(self):
         return '\n'.join(self.log)
 
+    def log_restricted(self, func):
+        def wrapper(*args, **kwargs):
+            if self.save_logs:
+                return func(*args, **kwargs)
+        return wrapper
+
+    @log_restricted
     def append(self, msg):
         date = localtime()
         year, month = date.tm_year, date.tm_mon
@@ -38,11 +47,12 @@ class Log:
 
 
 class Server:
-    def __init__(self, port):
+    def __init__(self, port, save_log=True):
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((socket.gethostbyname(socket.gethostname()), port))
-        self.log = Log()
+        self.save_log = save_log
+        self.log = Log(self.save_log)
 
     def handle_client(self, conn, addr):
         self.log.append(f'[NEW CONNECTION] {addr} connected.')
@@ -63,7 +73,7 @@ class Server:
         print(self.log)
 
     def listen(self):
-        self.socket.listen(2)
+        self.socket.listen()
         while True:
             conn, addr = self.socket.accept()
             Thread(target=self.handle_client, args=(conn, addr)).start()
