@@ -38,3 +38,11 @@ class ArkServer:
         self.name = server_name
         self.save_name = save_name
         self.bat_name = bat_name
+
+    def dict(self):
+        return {
+            "version": self.version,
+            "name": self.name,
+            "save_name": self.save_name,
+            "bat_name": self.bat_name
+        }

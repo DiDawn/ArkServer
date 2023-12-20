@@ -61,3 +61,9 @@ class ArkServerHandler:
         for server in self.servers:
             final_str += f"{server.version}|{server.name}|{server.save_name}|{server.bat_name}\n"
         return final_str
+
+    def dict(self):
+        final_dict = {}
+        for server in self.servers:
+            final_dict[server.name] = server.dict()
+        return final_dict

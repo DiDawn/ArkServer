@@ -5,6 +5,7 @@ import os
 from ark_server_handler import ArkServerHandler
 from passlib.hash import sha256_crypt
 from data_extractor import DataExtractor
+from resize_all_windows import resize
 
 customtkinter.set_appearance_mode("dark")
 
@@ -121,6 +122,7 @@ class ParamsFrame(customtkinter.CTkFrame):
 
     def modify_servers(self):
         modify_servers_frame = customtkinter.CTkFrame(self.master, fg_color="transparent", bg_color="transparent")
+
         servers_names = [server.name for server in self.server_handler.servers]
         choice = customtkinter.CTkOptionMenu(modify_servers_frame, values=servers_names)
         choice.grid(row=0, column=0, padx=30, pady=15)
@@ -140,6 +142,18 @@ class ParamsFrame(customtkinter.CTkFrame):
 
         modify_server_attributes_frame = customtkinter.CTkFrame(self.master, fg_color="transparent",
                                                                 bg_color="transparent")
+
+        top_frame = customtkinter.CTkFrame(modify_server_attributes_frame, fg_color="transparent",
+                                           bg_color="transparent")
+        add_server_label = customtkinter.CTkLabel(top_frame, text="Modify server attributes",
+                                                  font=customtkinter.CTkFont(size=25, weight="bold"))
+        close_button = customtkinter.CTkButton(top_frame, text="",
+                                               command=lambda: modify_server_attributes_frame.grid_forget(),
+                                               width=20, fg_color="gray24", hover_color="gray12",
+                                               image=TkImage(".\\images\\assets", "close.png",
+                                                             size=(15, 15)))
+        add_server_label.grid(row=0, column=0, padx=45)
+        close_button.grid(row=0, column=0, sticky="ne")
 
         server_name_input = customtkinter.CTkEntry(modify_server_attributes_frame, width=200,
                                                    placeholder_text="Server name")
@@ -161,33 +175,34 @@ class ParamsFrame(customtkinter.CTkFrame):
                                                        placeholder_text="Bat name")
         server_bat_name_input.insert(0, server.bat_name)
 
-        save_button = Button(modify_server_attributes_frame, "save", call_back=self.save_server,
-                             command_arg=([server, server_name_input, server_version, server_save_name_input,
-                                           server_bat_name_input, modify_server_attributes_frame]),
-                             text="save")
-
-        delete_button = Button(modify_server_attributes_frame, "delete", call_back=self.delete_server,
-                               command_arg=([server, modify_server_attributes_frame]),
-                               text="delete", fg_color="firebrick4", hover_color="firebrick3")
-
         error_label = customtkinter.CTkLabel(modify_server_attributes_frame, text="", fg_color="transparent",
                                              text_color="red4", width=200)
 
-        server_name_input.grid(row=0, column=0, padx=30, pady=(15, 15))
-        server_version.grid(row=1, column=0, padx=30, pady=(0, 15))
-        server_save_name_input.grid(row=2, column=0, padx=30, pady=(0, 15))
-        server_bat_name_input.grid(row=3, column=0, padx=30, pady=(0, 15))
-        save_button.grid(row=4, column=0, padx=30, pady=(15, 15))
-        delete_button.grid(row=5, column=0, padx=30, pady=(0, 15))
-        error_label.grid(row=6, column=0, padx=30, pady=(0, 15))
+        save_button = Button(modify_server_attributes_frame, "save", call_back=self.save_server,
+                             command_arg=([server, server_name_input, server_version, server_save_name_input,
+                                           server_bat_name_input, modify_server_attributes_frame, error_label]),
+                             text="Save")
+
+        delete_button = Button(modify_server_attributes_frame, "delete", call_back=self.delete_server,
+                               command_arg=([server, modify_server_attributes_frame]),
+                               text="Delete", fg_color="firebrick4", hover_color="firebrick3")
+
+        top_frame.grid(row=0, column=0, padx=30, pady=15)
+        server_name_input.grid(row=1, column=0, padx=30, pady=(15, 15))
+        server_version.grid(row=2, column=0, padx=30, pady=(0, 15))
+        server_save_name_input.grid(row=3, column=0, padx=30, pady=(0, 15))
+        server_bat_name_input.grid(row=4, column=0, padx=30, pady=(0, 15))
+        save_button.grid(row=5, column=0, padx=30, pady=(15, 15))
+        delete_button.grid(row=6, column=0, padx=30, pady=(0, 15))
+        error_label.grid(row=7, column=0, padx=30, pady=(0, 15))
         modify_server_attributes_frame.grid(row=0, column=0)
         modify_server_attributes_frame.lift()
 
     def save_server(self, args):
-        server, server_name, server_version, save_name, bat_name, frame = args
+        server, server_name, server_version, save_name, bat_name, frame, error_label = args
         prompt_error = self.check_input_error(server_version.get(), server_name.get(), save_name.get(), bat_name.get())
         if prompt_error:
-            frame.error_label.configure(text=prompt_error)
+            error_label.configure(text=prompt_error)
         else:
             if server.version != server_version.get() or server.name != server_name.get():
                 self.update_button_image(server.name, server_name.get(), server_version.get())
@@ -298,7 +313,7 @@ class App(customtkinter.CTk):
 
         # load and create background image
         self.current_path = os.path.dirname(os.path.realpath(__file__))
-        self.bg_image = customtkinter.CTkImage(Image.open("images/assets/wallpaper.png"),
+        self.bg_image = customtkinter.CTkImage(Image.open(".\\images\\assets\\wallpaper.png"),
                                                size=(self.width, self.height))
         self.bg_image_label = customtkinter.CTkLabel(self, image=self.bg_image)
         self.bg_image_label.grid(row=0, column=0)
@@ -337,6 +352,7 @@ class App(customtkinter.CTk):
         password = sha256_crypt.verify(self.password_entry.get(), admin_password)
         self.admin = username and password
         self.admin = True
+
         print(f"{self.admin=}")
 
         if self.admin:
@@ -360,12 +376,12 @@ class App(customtkinter.CTk):
 
         image = TkImage(".\\images\\assets", "start.png", size=(30, 30))
         start_button = Button(side_bar, "start", image=image, text="",
-                              call_back=lambda: self.server_handler.start_all_servers(), width=40,
+                              call_back=lambda: self.start_all_servers(), width=40,
                               fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
         image = TkImage(".\\images\\assets", "stop.png", size=(30, 30))
         stop_button = Button(side_bar, "stop", image=image, text="",
-                             call_back=lambda: self.server_handler.stop_all_servers(), width=40,
+                             call_back=lambda: self.stop_all_servers(), width=40,
                              fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
         gear_button.grid(row=0, column=0, padx=10, pady=10)
@@ -375,7 +391,7 @@ class App(customtkinter.CTk):
         if self.admin:
             image = TkImage(".\\images\\assets", "grid.png", size=(30, 30))
             grid_button = Button(side_bar, "grid", image=image, text="",
-                                 call_back=lambda: print("click!"), width=40,
+                                 call_back=lambda: resize(self.server_handler.active_servers()), width=40,
                                  fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
             image = TkImage(".\\images\\assets", "admin_panel.png", size=(30, 30))
@@ -413,6 +429,7 @@ class App(customtkinter.CTk):
 
         buttons = []
         items = self.match_image_server()
+        print(items)
         for server, image in items:
             button = Button(buttons_master, server.name, call_back=self.button_event, button_type="server",
                             command_arg=server.name, text="", image=image, bg_color="transparent",
@@ -423,8 +440,10 @@ class App(customtkinter.CTk):
                 button.configure(fg_color="firebrick4")
             buttons.append(button)
         if self.admin:
-            buttons.append(Button(buttons_master, "plus", call_back=self.plus_button_callback, text="",
-                                  image=self.buttons_images[-1]))
+            for image in self.buttons_images:
+                if image.name.split(".")[0] == 'plus':
+                    buttons.append(Button(buttons_master, "plus", call_back=self.plus_button_callback, text="",
+                                          image=image))
 
         if len(buttons) > 4:
             main_frame.grid_columnconfigure(0, weight=1)
@@ -453,7 +472,7 @@ class App(customtkinter.CTk):
         self.main_frame.grid(row=0, column=0, sticky="nsew", padx=100)
 
     def update_button_image(self, old_name, new_name, version):
-        new_image = TkImage("images/assets/versions", self.image_version[version], size=(500, 280))
+        new_image = TkImage(".\\images\\assets\\versions", self.image_version[version], size=(500, 280))
         image_ext = self.image_version[version].split(".")[-1]
         new_image.name = f"{new_name}.{image_ext}"
         new_image.image.save(f".\\images\\thumbnails\\{new_name}.{image_ext}")
@@ -473,6 +492,18 @@ class App(customtkinter.CTk):
         print("test")
         self.add_server_frame.grid(row=0, column=0)
         self.add_server_frame.lift()
+
+    def start_all_servers(self):
+        self.server_handler.start_all_servers()
+        for button in self.buttons:
+            if button.name != "plus":
+                button.configure(fg_color="green4")
+
+    def stop_all_servers(self):
+        self.server_handler.stop_all_servers()
+        for button in self.buttons:
+            if button.name != "plus":
+                button.configure(fg_color="firebrick4")
 
     def button_event(self, item):
         print(item)
@@ -554,7 +585,6 @@ class App(customtkinter.CTk):
 
     def match_image_server(self) -> list:
         match_list = []
-        print(self.server_handler.servers)
         for server in self.server_handler.servers:
             for image in self.buttons_images:
                 if server.name == image.name.split(".")[0]:

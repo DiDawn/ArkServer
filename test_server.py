@@ -1,49 +1,7 @@
 import socket
 from threading import Thread
-from time import localtime
-import os
-
-
-class Log:
-    def __init__(self, save_logs):
-        self.save_logs = save_logs
-
-        if self.save_logs:
-            if not os.path.exists('log.txt'):
-                with open('log.txt', 'w') as f:
-                    f.write('')
-            with open('log.txt', 'r') as f:
-                self.log = f.readlines()
-
-    def __str__(self):
-        return '\n'.join(self.log)
-
-    def log_restricted(self, func):
-        def wrapper(*args, **kwargs):
-            if self.save_logs:
-                return func(*args, **kwargs)
-        return wrapper
-
-    @log_restricted
-    def append(self, msg):
-        date = localtime()
-        year, month = date.tm_year, date.tm_mon
-        if month < 10:
-            month = f'0{month}'
-        day, hour, minute, second = date.tm_mday, date.tm_hour, date.tm_min, date.tm_sec
-        if day < 10:
-            day = f'0{day}'
-        if hour < 10:
-            hour = f'0{hour}'
-        if minute < 10:
-            minute = f'0{minute}'
-        if second < 10:
-            second = f'0{second}'
-        msg = f'[{year}/{month} {hour}:{minute}:{second}]~{msg}'
-        self.log.append(msg)
-        print(msg)
-        with open('log.txt', 'a') as f:
-            f.write(msg+'\n')
+from logger import Log
+import json
 
 
 class Server:
@@ -58,19 +16,63 @@ class Server:
         self.log.append(f'[NEW CONNECTION] {addr} connected.')
         connected = True
         while connected:
-            msg_length = conn.recv(64).decode('utf-8')
-            if msg_length:
-                msg_length = int(msg_length)
-                msg = conn.recv(msg_length).decode('utf-8')
+            msg_type, msg = self.get_msg(conn)
+
+            if msg_type == 'txt':
                 if msg == 'close':
                     connected = False
-                    conn.send('Connection closed.'.encode('utf-8'))
-                    self.log.append(f'[CONNECTION CLOSED] {addr} disconnected.')
+                    self.log.append(f'[DISCONNECTED] {addr} disconnected.')
                 else:
-                    conn.send('Message received.'.encode('utf-8'))
-                    self.log.append(f'[Message] {addr}: {msg}')
+                    self.log.append(f'[MESSAGE] {addr} sent: {msg}')
+
+            elif msg_type == 'json':
+                self.log.append(f'[MESSAGE] {addr} sent: {msg}')
+
+        self.send_txt(conn, 'Closing connection.')
         conn.close()
-        print(self.log)
+
+    @staticmethod
+    def receive(conn):
+        msg_length = conn.recv(64).decode('utf-8')
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = conn.recv(msg_length).decode('utf-8')
+            return msg
+
+    @staticmethod
+    def send(conn, message: bytes):
+        msg_length = len(message)
+        send_length = str(msg_length).encode('utf-8')
+        send_length += b' ' * (64 - len(send_length))
+        conn.send(send_length)
+        conn.send(message)
+
+    @staticmethod
+    def send_type(conn, msg_type):
+        Server.send(conn, msg_type.encode('utf-8'))
+
+    @staticmethod
+    def send_txt(conn, msg: str):
+        Server.send_type(conn, 'txt')
+        message = msg.encode('utf-8')
+        Server.send(conn, message)
+
+    @staticmethod
+    def send_json(conn, msg: dict):
+        Server.send_type(conn, 'json')
+        message = json.dumps(msg).encode('utf-8')
+        Server.send(conn, message)
+
+    def get_msg(self, conn):
+        msg_type = self.receive(conn)
+        msg = self.receive(conn)
+
+        if msg_type == 'txt':
+            return msg_type, msg
+
+        elif msg_type == 'json':
+            msg = json.loads(msg)
+            return msg_type, msg
 
     def listen(self):
         self.socket.listen()
