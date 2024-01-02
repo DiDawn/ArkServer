@@ -13,9 +13,10 @@ class Params:
 
 
 class DataExtractor:
-    def __init__(self):
+    def __init__(self, admin=False):
         self.params = self.extract_params()
-        self.extract_servers()
+        if admin:
+            self.extract_servers()
 
     @staticmethod
     def extract_params() -> Params:

@@ -1,5 +1,6 @@
 from data_extractor import DataExtractor
 from ark_server import ArkServer
+from resize_all_windows import resize
 
 
 class ArkServerHandler:
@@ -45,6 +46,9 @@ class ArkServerHandler:
 
     def active_servers(self):
         return [server for server in self.servers if server.is_online()]
+
+    def resize_servers_window(self):
+        resize(self.active_servers())
 
     def update_server(self, name, server_version, server_name, save_name, bat_name):
         server = self.get_server(name)

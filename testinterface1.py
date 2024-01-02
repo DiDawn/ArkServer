@@ -2,10 +2,10 @@ import customtkinter
 from PIL import Image
 from tkinter import filedialog
 import os
-from ark_server_handler import ArkServerHandler
 from passlib.hash import sha256_crypt
 from data_extractor import DataExtractor
-from resize_all_windows import resize
+from custom_client import CustomClient as Client
+from socket import gaierror
 
 customtkinter.set_appearance_mode("dark")
 
@@ -33,7 +33,7 @@ class TkImage(customtkinter.CTkImage):
 
 
 class ParamsFrame(customtkinter.CTkFrame):
-    def __init__(self, master, admin: bool, server_handler, refresh_main_frame, update_button_image,
+    def __init__(self, master, admin: bool, data_extractor, client, refresh_main_frame, update_button_image,
                  delete_button_image, check_input_error, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
@@ -42,8 +42,8 @@ class ParamsFrame(customtkinter.CTkFrame):
         self.delete_button_image = delete_button_image
         self.check_input_error = check_input_error
         self.admin = admin
-        self.server_handler = server_handler
-        self.data_extractor = server_handler.data_extractor
+        self.data_extractor = data_extractor
+        self.client = client
         self.visible = False
 
         self.admin_frame, self.user_frame, self.path_entry, self.server_port_entry, self.target_ip_entry, self.target_port_entry = self.frame_constructor()
@@ -64,10 +64,14 @@ class ParamsFrame(customtkinter.CTkFrame):
         server_port_entry = customtkinter.CTkEntry(admin_entry_frame, width=200, placeholder_text="Server port")
         if self.data_extractor.params.serverPort is not None:
             server_port_entry.insert(0, self.data_extractor.params.serverPort)
+
+        modify_servers_button = customtkinter.CTkButton(admin_entry_frame, text="Modify servers",
+                                                        command=lambda: self.modify_servers(), width=200)
         # grid admin frame
         path_entry.grid(row=0, column=0, padx=(30, 0), pady=(15, 15), sticky="w")
         folder_button.grid(row=0, column=1)
         server_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
+        modify_servers_button.grid(row=2, column=0, padx=30, pady=15)
 
         # user frame
         user_entry_frame = customtkinter.CTkFrame(self, fg_color="transparent", bg_color="transparent")
@@ -82,14 +86,11 @@ class ParamsFrame(customtkinter.CTkFrame):
         target_port_entry.grid(row=1, column=0, padx=30, pady=(0, 15))
 
         # for admin and user
-        modify_servers_button = customtkinter.CTkButton(self, text="Modify servers",
-                                                        command=lambda: self.modify_servers(), width=200)
         save_changes_button = customtkinter.CTkButton(self, text="Save changes",
                                                       command=lambda: self.save_changes(), width=200)
 
         user_entry_frame.grid(row=1, column=0, padx=30, pady=15)
-        modify_servers_button.grid(row=2, column=0, padx=30, pady=15)
-        save_changes_button.grid(row=3, column=0, padx=30, pady=(0, 15))
+        save_changes_button.grid(row=2, column=0, padx=30, pady=(0, 15))
 
         return admin_entry_frame, user_entry_frame, path_entry, server_port_entry, target_ip_entry, target_port_entry
 
@@ -98,7 +99,7 @@ class ParamsFrame(customtkinter.CTkFrame):
         if result and result.endswith("ShooterGame"):
             result = result.replace("/", "\\")
             entry.insert(0, result)
-            self.server_handler.update_shooter_game_path(result)
+            self.client.update_shooter_game_path(result)
 
     def hide_show(self):
         if self.visible:
@@ -115,7 +116,7 @@ class ParamsFrame(customtkinter.CTkFrame):
     def save_changes(self):
         if self.admin:
             self.data_extractor.update_param("serverPort", self.server_port_entry.get())
-            self.server_handler.update_shooter_game_path(self.path_entry.get())
+            self.client.update_shooter_game_path(self.path_entry.get())
         else:
             self.data_extractor.update_param("targetIp", self.target_ip_entry.get())
             self.data_extractor.update_param("targetPort", self.target_port_entry.get())
@@ -123,7 +124,7 @@ class ParamsFrame(customtkinter.CTkFrame):
     def modify_servers(self):
         modify_servers_frame = customtkinter.CTkFrame(self.master, fg_color="transparent", bg_color="transparent")
 
-        servers_names = [server.name for server in self.server_handler.servers]
+        servers_names = [server.name for server in self.client.servers]
         choice = customtkinter.CTkOptionMenu(modify_servers_frame, values=servers_names)
         choice.grid(row=0, column=0, padx=30, pady=15)
         select_button = Button(modify_servers_frame, "select", call_back=self.select_server,
@@ -137,7 +138,11 @@ class ParamsFrame(customtkinter.CTkFrame):
     def select_server(self, args):
         server_name, frame = args
         server_name = server_name.get()
-        server = self.server_handler.get_server(server_name)
+        server = None
+        for element in self.client.servers:
+            if element.name == server_name:
+                server = element
+
         frame.grid_forget()
 
         modify_server_attributes_frame = customtkinter.CTkFrame(self.master, fg_color="transparent",
@@ -207,15 +212,16 @@ class ParamsFrame(customtkinter.CTkFrame):
             if server.version != server_version.get() or server.name != server_name.get():
                 self.update_button_image(server.name, server_name.get(), server_version.get())
 
-            self.server_handler.update_server(server.name, server_version.get(), server_name.get(),
-                                              save_name.get(), bat_name.get())
+            server_dict = {"name": server_name.get(), "version": server_version.get(),
+                           "save_name": save_name.get(), "bat_name": bat_name.get()}
+            self.client.save_new_server_params(server.name, server_dict)
 
             frame.grid_forget()
             self.refresh_main_frame()
 
     def delete_server(self, args):
         server, frame = args
-        self.server_handler.delete_server(server.name)
+        self.client.delete_server(server.name)
         self.delete_button_image(server.name)
         frame.grid_forget()
         self.refresh_main_frame()
@@ -305,7 +311,13 @@ class App(customtkinter.CTk):
         super().__init__(*args, **kwargs)
 
         self.data_extractor = DataExtractor()
-        self.server_handler = ArkServerHandler(self.data_extractor)
+        target_ip, target_port = self.data_extractor.params.targetIp, self.data_extractor.params.targetPort
+        try:
+            self.client = Client(target_port, target_ip)
+        except ConnectionRefusedError:
+            raise Exception('HOST IS PROBABLY OFFLINE')
+        except gaierror:
+            raise Exception('IP INCORRECT')
 
         self.title("Ark Server Manager")
         self.geometry(f"{self.width}x{self.height}")
@@ -340,7 +352,7 @@ class App(customtkinter.CTk):
         self.add_server_frame = AddServerFrame(self, self.add_server, fg_color="transparent",
                                                bg_color="transparent")
 
-        self.params_frame = ParamsFrame(self, self.admin, self.server_handler, self.refresh_main_frame,
+        self.params_frame = ParamsFrame(self, self.admin, self.refresh_main_frame, self.data_extractor, self.client,
                                         self.update_button_image, self.delete_button_image,
                                         self.check_input_error, fg_color="transparent")
 
@@ -391,7 +403,7 @@ class App(customtkinter.CTk):
         if self.admin:
             image = TkImage(".\\images\\assets", "grid.png", size=(30, 30))
             grid_button = Button(side_bar, "grid", image=image, text="",
-                                 call_back=lambda: resize(self.server_handler.active_servers()), width=40,
+                                 call_back=lambda: self.client.resize_servers_window, width=40,
                                  fg_color="transparent", bg_color="transparent", hover_color="gray12")
 
             image = TkImage(".\\images\\assets", "admin_panel.png", size=(30, 30))
@@ -423,7 +435,7 @@ class App(customtkinter.CTk):
         main_frame = customtkinter.CTkFrame(self, corner_radius=0)
         buttons_master = main_frame
         scrollable_frame = None
-        if len(self.server_handler.servers) > 4 or (self.admin and len(self.server_handler.servers) > 3):
+        if len(self.client.servers) > 4 or (self.admin and len(self.client.servers) > 3):
             scrollable_frame = ScrollableButtonFrame(main_frame)
             buttons_master = scrollable_frame
 
@@ -494,13 +506,13 @@ class App(customtkinter.CTk):
         self.add_server_frame.lift()
 
     def start_all_servers(self):
-        self.server_handler.start_all_servers()
+        self.client.start_all_servers()
         for button in self.buttons:
             if button.name != "plus":
                 button.configure(fg_color="green4")
 
     def stop_all_servers(self):
-        self.server_handler.stop_all_servers()
+        self.client.stop_all_servers()
         for button in self.buttons:
             if button.name != "plus":
                 button.configure(fg_color="firebrick4")
@@ -510,12 +522,15 @@ class App(customtkinter.CTk):
         item = item.split('.')[0]
         for button in self.buttons:
             if button.name.split(".")[0] == item:
-                if self.server_handler.is_server_online(item):
-                    button.configure(fg_color="firebrick4")
-                    self.server_handler.close_server(item)
-                else:
-                    button.configure(fg_color="green4")
-                    self.server_handler.start_server(item)
+                self.client.update_server_state(item)
+                for server in self.client.servers:
+                    if server.name == item:
+                        if server.is_online:
+                            button.configure(fg_color="firebrick4")
+                            self.client.close_server(item)
+                        else:
+                            button.configure(fg_color="green4")
+                            self.client.start_server(item)
 
     def add_server(self, version, name, save_name, bat_name):
         prompt_error = self.check_input_error(version, name, save_name, bat_name)
@@ -531,7 +546,8 @@ class App(customtkinter.CTk):
             tk_image.name = f"{name}.{image_ext}"
 
             self.buttons_images.append(tk_image)
-            self.server_handler.add_server(version, name, save_name, bat_name)
+            serv_dict = {'version': version, 'name': name, 'save_name': save_name, 'bat_name': bat_name}
+            self.client.add_server(serv_dict)
 
             self.refresh_main_frame()
 
@@ -585,7 +601,7 @@ class App(customtkinter.CTk):
 
     def match_image_server(self) -> list:
         match_list = []
-        for server in self.server_handler.servers:
+        for server in self.client.servers:
             for image in self.buttons_images:
                 if server.name == image.name.split(".")[0]:
                     match_list.append((server, image))

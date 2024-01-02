@@ -46,3 +46,10 @@ class ArkServer:
             "save_name": self.save_name,
             "bat_name": self.bat_name
         }
+
+    @staticmethod
+    def from_dict(dico):
+        return ArkServer(dico['version'], dico['name'], dico['save_name'], dico['bat_name'])
+
+    def __str__(self):
+        return f'name:{self.name} | version:{self.version} | save name:{self.save_name} | bat name:{self.bat_name}'
